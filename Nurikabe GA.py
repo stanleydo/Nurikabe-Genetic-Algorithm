@@ -22,7 +22,7 @@
 class NurikabeGA():
 
     # Grid size indicates a NxN grid
-    # grid_size = 5
+    grid_size = 5
 
     # Specifies the center island coordinates
     center_coords = [(0, 3), (2, 1), (2, 3), (4, 1)]
@@ -31,8 +31,8 @@ class NurikabeGA():
     # Like A = Population()
     # Like B = Individual()
 
-    # gene_pool = [(x, y) for x, y in range(grid_size)
-    #              if (x, y) not in center_coords]
+    gene_pool = [(x, y) for x, y in range(grid_size)
+                 if (x, y) not in center_coords]
 
 
         # Maybe
@@ -69,7 +69,6 @@ class Gene():
         # Total connected island or ocean
 
 def main():
-    print("Hello World")
     # nurikabe = NurikabeGA()
     gene = Gene()
     gene.island = True
