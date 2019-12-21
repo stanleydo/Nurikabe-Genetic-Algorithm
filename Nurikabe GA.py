@@ -60,6 +60,14 @@ class Individual(list):
     def calculateFitness(self):
         pass
 
+class Gene():
+    def __init__(self):
+        # Coordinates (Set first index of associated island as the pre-defined center value/island)
+        # Island or Ocean
+        # Center Value
+        # Total connected island or ocean
+        pass
+
 
 if __name__ == "__main__":
     main()
