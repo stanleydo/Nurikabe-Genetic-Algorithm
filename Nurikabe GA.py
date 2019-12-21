@@ -29,14 +29,9 @@ class NurikabeGA():
     center_coords = list
     gene_pool = list
 
-<<<<<<< HEAD
-    # Grid size indicates a NxN grid
-    grid_size = 5
-=======
     def __init__(self, grid_size, center_coords):
         # Grid size indicates a NxN grid
         self.grid_size = grid_size
->>>>>>> 1798b2f7ec16d606751b630122883a8a5acff672
 
         # Specifies the center island coordinates
         self.center_coords = center_coords
@@ -49,26 +44,18 @@ class NurikabeGA():
     # Like A = Population()
     # Like B = Individual()
 
-<<<<<<< HEAD
-    gene_pool = [(x, y) for x, y in range(grid_size)
-                 if (x, y) not in center_coords]
-
-
-        # Maybe
-=======
     # Maybe
->>>>>>> 1798b2f7ec16d606751b630122883a8a5acff672
     def mutate(self):
         pass
 
 
-class Population(list):
+class Population():
 
     def __init__(self):
         pass
 
 
-class Individual(list):
+class Individual():
 
     # Initialize individual with a random set of (x,y) coordinates
     # Private Gene Class
@@ -96,14 +83,14 @@ class Gene():
 
 
 def main():
-<<<<<<< HEAD
-    # nurikabe = NurikabeGA()
-=======
     print("Hello World")
     nurikabe = NurikabeGA(grid_size, center_coords)
     print("Gene Pool: ", nurikabe.gene_pool)
 
->>>>>>> 1798b2f7ec16d606751b630122883a8a5acff672
+    individual = Individual()
+    individual.genes.island = True
+    print("individual genes: ", individual.genes.island)
+
     gene = Gene()
     gene.island = True
     print(gene.island)
