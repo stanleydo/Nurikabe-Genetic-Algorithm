@@ -19,19 +19,26 @@
 
 # The class that combines everything to be called in main
 
+# Constants
+grid_size = 5
+center_coords = [(0, 3), (2, 1), (2, 3), (4, 1)]
+
 
 class NurikabeGA():
+    grid_size = int
+    center_coords = list
+    gene_pool = list
 
-    def __init__(self):
+    def __init__(self, grid_size, center_coords):
         # Grid size indicates a NxN grid
-        self.grid_size = 5
+        self.grid_size = grid_size
 
         # Specifies the center island coordinates
-        self.center_coords = [(0, 3), (2, 1), (2, 3), (4, 1)]
+        self.center_coords = center_coords
 
         # Creates a list of all possible coordinates in a 5x5 grid
         self.gene_pool = [(x, y) for y in range(self.grid_size)
-                          for x in range(self.grid_size)]
+                          for x in range(self.grid_size) if (x, y) not in self.center_coords]
 
     # Private classes
     # Like A = Population()
@@ -48,13 +55,6 @@ class Population(list):
         pass
 
 
-def main():
-    print("Hello World")
-    nurikabe = NurikabeGA()
-    print("Gene Pool: ", nurikabe.gene_pool)
-    return 0
-
-
 class Individual(list):
 
     # Initialize individual with a random set of (x,y) coordinates
@@ -69,12 +69,28 @@ class Individual(list):
 
 
 class Gene():
+    coordinate = tuple
+    island = bool
+    centerValue = int
+    connectedislands = int
+
     def __init__(self):
+        pass
         # Coordinates (Set first index of associated island as the pre-defined center value/island)
         # Island or Ocean
         # Center Value
         # Total connected island or ocean
-        pass
+
+
+def main():
+    print("Hello World")
+    nurikabe = NurikabeGA(grid_size, center_coords)
+    print("Gene Pool: ", nurikabe.gene_pool)
+
+    gene = Gene()
+    gene.island = True
+    print(gene.island)
+    return 0
 
 
 if __name__ == "__main__":
