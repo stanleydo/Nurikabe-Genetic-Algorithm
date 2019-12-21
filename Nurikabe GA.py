@@ -21,6 +21,7 @@ class NurikabeGA():
 
 def main():
     print("Hello World")
+    print("test")
     return 0
 
 
