@@ -45,7 +45,6 @@ class Population(list):
 def main():
     print("Hello World")
     nurikabe = NurikabeGA()
-    print(nurikabe.gene_pool)
     return 0
 
 
