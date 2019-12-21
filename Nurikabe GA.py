@@ -26,8 +26,7 @@ class NurikabeGA():
     # Specifies the center island coordinates
     center_coords = [(0, 3), (2, 1), (2, 3), (4, 1)]
 
-    gene_pool = [(x, y) for x, y in range(grid_size)
-                 if (x, y) not in center_coords]
+    gene_pool = [(x, y)]
 
     class Individual(list):
 
