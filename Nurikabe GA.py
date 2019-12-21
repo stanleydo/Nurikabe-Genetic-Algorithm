@@ -17,15 +17,21 @@
 # 1 0 0 0 0
 # 1 1 1 1 1
 
-
 # The class that combines everything to be called in main
+
+
 class NurikabeGA():
 
-    # Grid size indicates a NxN grid
-    grid_size = 5
+    def __init__(self):
+        # Grid size indicates a NxN grid
+        self.grid_size = 5
 
-    # Specifies the center island coordinates
-    center_coords = [(0, 3), (2, 1), (2, 3), (4, 1)]
+        # Specifies the center island coordinates
+        self.center_coords = [(0, 3), (2, 1), (2, 3), (4, 1)]
+
+        # Creates a list of all possible coordinates in a 5x5 grid
+        self.gene_pool = [(x, y) for y in range(self.grid_size)
+                          for x in range(self.grid_size)]
 
     # Private classes
     # Like A = Population()
@@ -45,6 +51,7 @@ class Population(list):
 def main():
     print("Hello World")
     nurikabe = NurikabeGA()
+    print("Gene Pool: ", nurikabe.gene_pool)
     return 0
 
 
@@ -59,6 +66,7 @@ class Individual(list):
 
     def calculateFitness(self):
         pass
+
 
 class Gene():
     def __init__(self):
