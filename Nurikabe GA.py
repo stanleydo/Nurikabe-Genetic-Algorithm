@@ -17,6 +17,8 @@
 # 1 0 0 0 0
 # 1 1 1 1 1
 
+import random
+
 # The class that combines everything to be called in main
 
 # Constants
@@ -61,7 +63,8 @@ class Individual(list):
     # Private Gene Class
     # Genes = Gene()
 
-    def __init__(self):
+    def __init__(self, gene_pool):
+        randomized_gene_pool = random.shuffle(gene_pool)
         pass
 
     def calculateFitness(self):
