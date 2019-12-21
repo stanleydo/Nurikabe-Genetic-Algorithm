@@ -52,7 +52,7 @@ def main():
     print("Hello World")
     nurikabe = NurikabeGA()
     print(nurikabe.gene_pool)
-
+    print("test")
     return 0
 
 
