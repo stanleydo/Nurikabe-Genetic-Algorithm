@@ -26,6 +26,30 @@ grid_size = 5
 center_coords = [(0, 3), (2, 1), (2, 3), (4, 1)]
 
 
+class Individual():
+
+    # Initialize individual with a random set of (x,y) coordinates
+    # Genes
+    coordinate = tuple
+    island = bool
+    centerValue = int
+    connectedislands = int
+
+
+    def __init__(self, gene_pool):
+        randomized_gene_pool = random.shuffle(gene_pool)
+        pass
+
+    def calculateFitness(self):
+        pass
+
+
+class Population():
+
+    def __init__(self):
+        pass
+
+
 class NurikabeGA():
     grid_size = int
     center_coords = list
@@ -51,52 +75,11 @@ class NurikabeGA():
         pass
 
 
-class Population():
-
-    def __init__(self):
-        pass
-
-
-class Individual():
-
-    # Initialize individual with a random set of (x,y) coordinates
-    # Private Gene Class
-    # Genes = Gene()
-
-    def __init__(self, gene_pool):
-        randomized_gene_pool = random.shuffle(gene_pool)
-        pass
-
-    def calculateFitness(self):
-        pass
-
-
-class Gene():
-    coordinate = tuple
-    island = bool
-    centerValue = int
-    connectedislands = int
-
-    def __init__(self):
-        pass
-        # Coordinates (Set first index of associated island as the pre-defined center value/island)
-        # Island or Ocean
-        # Center Value
-        # Total connected island or ocean
-
-
 def main():
     print("Hello World")
     nurikabe = NurikabeGA(grid_size, center_coords)
     print("Gene Pool: ", nurikabe.gene_pool)
 
-    individual = Individual()
-    individual.genes.island = True
-    print("individual genes: ", individual.genes.island)
-
-    gene = Gene()
-    gene.island = True
-    print(gene.island)
     return 0
 
 
