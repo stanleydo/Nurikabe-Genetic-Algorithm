@@ -3,6 +3,9 @@
 # Spencer Young
 # Stanley Do
 
+# Imports
+import random
+
 # SAMPLE
 # 0 0 0 5 0
 # 0 0 0 0 0
@@ -17,7 +20,6 @@
 # 1 0 0 0 0
 # 1 1 1 1 1
 
-import random
 
 # The class that combines everything to be called in main
 
@@ -108,6 +110,7 @@ class Population(list):
     # TODO
     # The crossover (or replace an island part with an ocean)
     def breed(self, mating_pool):
+        # For now just a random one?
         pass
 
     # TODO
@@ -117,6 +120,26 @@ class Population(list):
     # TODO
     def breedPopulation(self):
         pass
+
+    # The tool to print an individual in a population 
+    # Convert Individual to a matrix (Visualization), Takes an index (int) of a population
+    def printAsMatrix(self, index):
+        
+        # Initializing grid
+        grid = [[0]*grid_size for i in range(grid_size)]
+
+        # islandNumber is used to mark the grid
+        islandNumber = 1
+        # Using cumsum to get the indices of the individual to extract
+        for i in range(len(cum_sum_butlast)-1):
+            for x,y in self[index][cum_sum[i]:cum_sum_butlast[i+1]]:
+                # Assign the value in the grid
+                grid[x][y] = islandNumber
+            islandNumber += 1
+        
+        # 0 is water, 1-X is islands numbers
+        for _ in grid:
+            print(_)
 
 
 class Individual(list):
@@ -212,6 +235,10 @@ def main():
     population = Population(
         pop_size=100, mating_pool_size=100, elite_size=10, mutation_rate=0.5)
     print("Population = ", population)
+    
+    # The tool to print an individual in a population 
+    print("Population #0:")
+    population.printAsMatrix(0)
 
     return 0
 
