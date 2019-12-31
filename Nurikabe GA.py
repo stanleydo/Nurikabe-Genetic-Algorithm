@@ -121,10 +121,18 @@ class Population(list):
     def breedPopulation(self):
         pass
 
-    # The tool to print an individual in a population 
-    # Convert Individual to a matrix (Visualization), Takes an index (int) of a population
+    # The tool to print an individual in a population as a matrix
+    # 0 representing water, 1-X representing islands
+    # Example:
+    # Population #0:
+    # [1, 0, 0, 1, 0]
+    # [0, 2, 1, 0, 0]
+    # [3, 1, 0, 3, 0]
+    # [1, 0, 0, 0, 0]
+    # [0, 0, 0, 0, 0]
+
+    # Convert Individual to a matrix for visualization, Takes an index (int) of a population
     def printAsMatrix(self, index):
-        
         # Initializing grid
         grid = [[0]*grid_size for i in range(grid_size)]
 
@@ -137,7 +145,6 @@ class Population(list):
                 grid[x][y] = islandNumber
             islandNumber += 1
         
-        # 0 is water, 1-X is islands numbers
         for _ in grid:
             print(_)
 
