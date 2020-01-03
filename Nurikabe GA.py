@@ -60,6 +60,17 @@ all_coords = [(x, y) for y in range(grid_size) for x in range(grid_size)]
 # A list that does not contain the center coords.
 valid_coords = [x for x in all_coords if x not in center_coords]
 
+# Dictionary which contains all of the valid edges for the corresponding coordinate
+adjacencies = dict()
+for coord in all_coords:
+    adjacents = []
+    x, y = coord
+    adjacents += [(x+1, y)] if x+1 < grid_size else []
+    adjacents += [(x, y+1)] if y+1 < grid_size else []
+    adjacents += [(x-1, y)] if x-1 >= 0 else []
+    adjacents += [(x, y-1)] if y-1 >= 0 else []
+    adjacencies[coord] = adjacents
+
 
 class NurikabeGA():
 
@@ -140,11 +151,11 @@ class Population(list):
         islandNumber = 1
         # Using cumsum to get the indices of the individual to extract
         for i in range(len(cum_sum)-1):
-            for x,y in self[index][cum_sum[i]:cum_sum[i+1]]:
+            for x, y in self[index][cum_sum[i]:cum_sum[i+1]]:
                 # Assign the value in the grid
                 grid[x][y] = islandNumber
             islandNumber += 1
-        
+
         for _ in grid:
             print(_)
 
@@ -176,13 +187,18 @@ class Individual(list):
                 # Pop & append a coordinate from the newly created randomized list of valid coords to the individual.
                 self.append(random_valid_coords.pop())
 
+        ocean_start_index = cum_sum[-1]
+        self.ocean = self[ocean_start_index:len(self)]
+
     # FITNESS FUNCTIONS SUBJECT TO CHANGE!!!
     # Just a regular fitness function
 
     def calculate_fitness(self):
         total_fitness = 0
 
-        # TODO
+        # isIsolated() will return a value indicating how many good (or isolated) islands there are.
+        # A perfectly fit individual will have a fitness equal to the length.
+        total_fitness += self.isIsolated()
 
         return total_fitness
 
@@ -202,24 +218,48 @@ class Individual(list):
         # to know if a island is connected, the difference between each coordinate summed together must be |1|, example: (1,1)(1,2) = 1-1 + 1-2 = 1
         # using cum sum, we can calculate the number of connected islands
         # we can start by making a list of adjacent nodes
-        
+
         # Currently a work in progress
         first = False
         for i in range(len(cum_sum)-1):
             first = True
-            for x,y in self[cum_sum[i]:cum_sum[i+1]]:
+            for x, y in self[cum_sum[i]:cum_sum[i+1]]:
                 if(first):
                     first = False
 
-                
-
-
-
         pass
 
-    # TODO, island should be isolated: not connected to another island.
     def isIsolated(self):
-        pass
+        # The island's adjacencies should only be within itself or within an ocean.
+        # Keeps track of iterations
+        isl = 0
+
+        # Incorporated a fitness value
+        fitness_val = len(center_coords)
+
+        # For each coordinate in an island, the coordinate's adjacent position must be within itself or the ocean.
+        for island_start in cum_sum_butlast:
+            island_end = cum_sum[isl+1]
+
+            # island is a list or splice of coordinates corresponding to an island
+            island = self[island_start:island_end]
+
+            # An island will stay "Good" if it's isolated.
+            good_island = True
+
+            for coord in island:
+                adjacents = adjacencies[coord]
+                for a in adjacents:
+                    # Ocean is just a list/splice of the ocean. It's in the init of the individual.
+                    if a not in self.ocean or a not in island:
+                        good_island = False
+
+            if not good_island:
+                fitness_val -= 1
+
+            isl += 1
+
+        return fitness_val
 
 
 # Not sure if we need a Gene() class
@@ -255,13 +295,14 @@ def main():
     individual = Individual()
     print("individual = ", individual)
     individual.findConnected()
+    print("Individual Fitness: ", individual.calculate_fitness())
 
     population = Population(
         pop_size=100, mating_pool_size=100, elite_size=10, mutation_rate=0.5)
     print("Population = ", population)
-    
-    # The tool to print an individual in a population 
-    print("Population #0:")
+
+    # The tool to print an individual in a population
+    print("Individual #0:")
     population.printAsMatrix(0)
 
     return 0
