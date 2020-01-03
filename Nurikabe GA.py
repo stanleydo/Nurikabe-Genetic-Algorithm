@@ -139,8 +139,8 @@ class Population(list):
         # islandNumber is used to mark the grid
         islandNumber = 1
         # Using cumsum to get the indices of the individual to extract
-        for i in range(len(cum_sum_butlast)-1):
-            for x,y in self[index][cum_sum[i]:cum_sum_butlast[i+1]]:
+        for i in range(len(cum_sum)-1):
+            for x,y in self[index][cum_sum[i]:cum_sum[i+1]]:
                 # Assign the value in the grid
                 grid[x][y] = islandNumber
             islandNumber += 1
@@ -199,6 +199,22 @@ class Individual(list):
     # TODO
     # Kinda tough
     def findConnected(self):
+        # to know if a island is connected, the difference between each coordinate summed together must be |1|, example: (1,1)(1,2) = 1-1 + 1-2 = 1
+        # using cum sum, we can calculate the number of connected islands
+        # we can start by making a list of adjacent nodes
+        
+        # Currently a work in progress
+        first = False
+        for i in range(len(cum_sum)-1):
+            first = True
+            for x,y in self[cum_sum[i]:cum_sum[i+1]]:
+                if(first):
+                    first = False
+
+                
+
+
+
         pass
 
     # TODO, island should be isolated: not connected to another island.
@@ -238,6 +254,7 @@ def main():
 
     individual = Individual()
     print("individual = ", individual)
+    individual.findConnected()
 
     population = Population(
         pop_size=100, mating_pool_size=100, elite_size=10, mutation_rate=0.5)
