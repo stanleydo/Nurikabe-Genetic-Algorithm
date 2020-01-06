@@ -22,6 +22,8 @@ import time
 # 1 0 0 0 0
 # 1 1 1 1 1
 
+# Change breed to not maintain the top X elites, rather use a probability function to figure that out.
+# Crossover should move an island from p1 into the child, then the rest into c1. Need to handle the duplicates.
 
 # The class that combines everything to be called in main
 
@@ -202,8 +204,70 @@ class Population():
 
         return children
 
+    # Moves a randomly selected island from Parent 1 and puts it into parent 2.
+    # Anything that was in parent 1 that's found in parent 2 will be replaced with the remainders.
+    def single_island_crossover(self, mating_pool):
+        children = []
+
+        # Maintain some elites based on elite size
+        for i in range(self.elite_size):
+            children.append(mating_pool[i])
+
+        for i in range(self.mating_pool_size - self.elite_size):
+            # Find some random parents
+            p1_random: Individual = random.choice(mating_pool)
+            p2_random: Individual = random.choice(mating_pool)
+
+            # random_island_range picks a random range like [0,5] or [5,10]
+            p1_island_range = p1_random.random_island_range()
+
+            # Finds the actual elements in the range and converts it to a set
+            p1_toSet = set(
+                p1_random.individual[p1_island_range[0]+1:p1_island_range[1]])
+            p2_toSet = set(
+                p2_random.individual[p1_island_range[0]+1:p1_island_range[1]])
+
+            # DEBUGGING
+            # print("P1: ", p1_random.individual)
+            # print("P2: ", p2_random.individual)
+
+            # Maintain p1_toSet but as a list, so we can use it fo reasy comparison
+            p1_toList = list(p1_toSet)
+            # Subtracting the p1 set from the p2 set and making sure we don't lose any coordinates
+            remainders = list(p2_toSet - p1_toSet)
+
+            # DEBUGGING
+            # print("p1_toList: ", p1_toList)
+            # print("Remainders: ", remainders)
+
+            child = Individual()
+            child.individual = p2_random.individual.copy()
+            inner = 0
+
+            avoid_range = range(p1_island_range[0]+1, p1_island_range[1])
+            for i in range(list_size):
+                if i in avoid_range:
+                    child.individual[i] = p1_toList[inner]
+                    inner += 1
+                else:
+                    if child.individual[i] in p1_toList:
+                        child.individual[i] = remainders.pop()
+
+            # Debugging
+            # print("Parent 1 : ", p1_random.individual)
+            # print("Parent 2 : ", p2_random.individual)
+            # print("Child    : ", child.individual)
+
+            children.append(child)
+
+        for i in range(self.pop_size - self.mating_pool_size):
+            children.append(Individual())
+
+        return children
+
     # Mutates all of the individual in a given population
     # In this case, it should be all the children
+
     def mutate(self, children):
         for child in children:
             rand_chance = random.random()
@@ -219,7 +283,7 @@ class Population():
 
     def breedPopulation(self):
         mating_pool = self.getMatingPool()
-        children = self.breed(mating_pool)
+        children = self.single_island_crossover(mating_pool)
         mutated = self.mutate(children)
         self.population = mutated
         return self
@@ -293,9 +357,6 @@ class Individual():
         # isIsolated() will return a value indicating how many good (or isolated) islands there are.
         # A perfectly fit individual will have a fitness equal to the length.
         total_fitness += self.isIsolated()
-
-        # total_fitness += random.randint(0, 1000)
-        # total_fitness -= random.randint(900, 1000)
 
         return total_fitness
 
@@ -394,6 +455,13 @@ class Individual():
             isl += 1
 
         return fitness_val
+
+    # Returns a random island range
+    def random_island_range(self):
+        island_start_index = random.choice(range(len(cum_sum_butlast)))
+        # print("Island Indices being swapped: ",
+        #       cum_sum[island_start_index:island_start_index+2])
+        return cum_sum[island_start_index:island_start_index + 2]
 
 
 # Not sure if we need a Gene() class
