@@ -395,7 +395,6 @@ class Individual():
                 if(first):
                     first = False
                     center = coord
-                    print("New Center:", center)
                 else:
                     if(self.isAdj(center,(coord))):
                         numOfAdj += 1
@@ -406,15 +405,9 @@ class Individual():
                         # self.individual[cum_sum[i]:cum_sum[i+1]]:
 
 
-
-
-
-            print(numOfAdj)
+            # print(numOfAdj)
             numOfAdj = 0
             first = True
-            
-
-
         pass
 
     def isIsolated(self):
