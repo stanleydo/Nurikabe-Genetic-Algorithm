@@ -370,20 +370,50 @@ class Individual():
 
         return total_fitness
 
-    # TODO
+    # isAdj checks two coordinates to see if theyre adjacent and returns a boolean
+    def isAdj(self, coord1, coord2):
+    # For clarity
+        x1,y1 = coord1
+        x2,y2 = coord2
+        return abs(((x2-x1)+(y2-y1))) == 1
+
     # Kinda tough
+    # TODO
     def findConnected(self):
         # to know if a island is connected, the difference between each coordinate summed together must be |1|, example: (1,1)(1,2) = 1-1 + 1-2 = 1
         # using cum sum, we can calculate the number of connected islands
         # we can start by making a list of adjacent nodes
 
         # Currently a work in progress
+        coordsAdj = []
         first = False
+        numOfAdj = 0
         for i in range(len(cum_sum)-1):
             first = True
-            for x, y in self.individual[cum_sum[i]:cum_sum[i+1]]:
+            for coord in self.individual[cum_sum[i]:cum_sum[i+1]]:
+                # First marks center coordinate
                 if(first):
                     first = False
+                    center = coord
+                    print("New Center:", center)
+                else:
+                    if(self.isAdj(center,(coord))):
+                        numOfAdj += 1
+                        #Add to list of coordinates that are adj to the center then redo
+                        # have a rechecking counter
+                        coordsAdj.append(coord)
+                        # TODO restart procedure checking all coords in coordsadj using
+                        # self.individual[cum_sum[i]:cum_sum[i+1]]:
+
+
+
+
+
+            print(numOfAdj)
+            numOfAdj = 0
+            first = True
+            
+
 
         pass
 
@@ -507,11 +537,17 @@ def main():
     # The tool to print an individual in a population
     # print("Individual #0:")
     # population.printAsMatrix(0)
+    
 
     nurikabe = NurikabeGA(grid_size, center_coords, 200)
     nurikabe.geneticAlgorithm(
         pop_size=800, mating_pool_size=100, elite_size=10, mutation_rate=.75)
 
+    ind = Individual()
+    print(ind.individual)
+    # print(ind)
+    # print(ind.isAdj((3,4),(3,3)))
+    print(ind.findConnected())
     return 0
 
 
