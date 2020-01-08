@@ -20,7 +20,9 @@ import time
 # 0 0 0 0 0
 # 0 1 0 2 1
 # 1 0 0 0 0
-# 1 1 1 1 1
+# 1 6 1 1 1
+
+best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4,0),(4,2),(4,3),(4,4),(1,0),(1,1),(1,2),(1,3),(1,4),(2,0),(2,2),(3,1),(3,2),(3,3),(3,4)]
 
 # Change breed to not maintain the top X elites, rather use a probability function to figure that out.
 # Crossover should move an island from p1 into the child, then the rest into c1. Need to handle the duplicates.
@@ -37,7 +39,7 @@ list_size = grid_size * grid_size
 
 # The main island coordinates (x,y): value
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-center_coords = {(0, 3): 5, (1, 1): 1, (2, 3): 2, (4, 1): 6}
+center_coords = {(0, 3): 5, (2, 1): 1, (2, 3): 2, (4, 1): 6}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -75,7 +77,7 @@ for coord in all_coords:
     adjacents += [(x, y-1)] if y-1 >= 0 else []
     adjacencies[coord] = adjacents
 
-
+# TODOS .... Need to add multiple Populations and find a way to do multi-objective fitness.
 class NurikabeGA():
 
     def __init__(self, grid_size, center_coords, generations):
@@ -102,9 +104,8 @@ class NurikabeGA():
         best_generation = 0
 
         for i in range(0, self.generations):
-
-            ct = 0
             for ind in population.population:
+                # print("Individual: ", ind.individual)
                 fitness = ind.calculate_fitness()
                 if fitness > best_fitness:
                     best_individual = ind
@@ -114,13 +115,12 @@ class NurikabeGA():
                 if best_fitness == 4:
                     break
 
-                ct += 1
-
             if best_fitness == 4:
                 print("Solution found in", round(
                     time.time() - startTime, 2), "seconds")
                 print("Generation ", i, ": Best Fitness = ", best_fitness)
-                print("Best Individual: ", population.printAsMatrix(ct))
+                print("Best Individual: ", best_individual.individual)
+                best_individual.printAsMatrix()
                 break
 
             if i % 10 == 0:
@@ -206,6 +206,7 @@ class Population():
 
     # Moves a randomly selected island from Parent 1 and puts it into parent 2.
     # Anything that was in parent 1 that's found in parent 2 will be replaced with the remainders.
+    # Added ocean swapping as well.
     def single_island_crossover(self, mating_pool):
         children = []
 
@@ -222,16 +223,24 @@ class Population():
             p1_island_range = p1_random.random_island_range()
 
             # Finds the actual elements in the range and converts it to a set
-            p1_toSet = set(
-                p1_random.individual[p1_island_range[0]+1:p1_island_range[1]])
-            p2_toSet = set(
-                p2_random.individual[p1_island_range[0]+1:p1_island_range[1]])
+            if len(p1_island_range) != 1:
+                p1_toSet = set(
+                    p1_random.individual[p1_island_range[0]+1:p1_island_range[1]])
+                p2_toSet = set(
+                    p2_random.individual[p1_island_range[0]+1:p1_island_range[1]])
+                avoid_range = range(p1_island_range[0] + 1, p1_island_range[1])
+            else:
+                p1_toSet = set(
+                    p1_random.individual[p1_island_range[0]:list_size])
+                p2_toSet = set(
+                    p2_random.individual[p1_island_range[0]:list_size])
+                avoid_range = range(p1_island_range[0], list_size)
 
             # DEBUGGING
             # print("P1: ", p1_random.individual)
             # print("P2: ", p2_random.individual)
 
-            # Maintain p1_toSet but as a list, so we can use it fo reasy comparison
+            # Maintain p1_toSet but as a list, so we can use it for easy comparison
             p1_toList = list(p1_toSet)
             # Subtracting the p1 set from the p2 set and making sure we don't lose any coordinates
             remainders = list(p2_toSet - p1_toSet)
@@ -244,7 +253,6 @@ class Population():
             child.individual = p2_random.individual.copy()
             inner = 0
 
-            avoid_range = range(p1_island_range[0]+1, p1_island_range[1])
             for i in range(list_size):
                 if i in avoid_range:
                     child.individual[i] = p1_toList[inner]
@@ -272,13 +280,21 @@ class Population():
         for child in children:
             rand_chance = random.random()
             if rand_chance < self.mutation_rate:
+                # print("Before Mutated Child: ", child.individual)
                 random_land = random.randint(0, max_islands-1)
-                while random_land in center_coords_keys:
+                while random_land in cum_sum_butlast:
                     random_land = random.randint(0, max_islands-1)
                 random_ocean = random.randint(max_islands, list_size-1)
                 temp_coord = child.individual[random_land]
                 child.individual[random_land] = child.individual[random_ocean]
                 child.individual[random_ocean] = temp_coord
+                # print("After Mutated Child: ", child.individual)
+            # This will mutate the individual into the solution
+            # Use this for testing #
+            # if rand_chance < 0.1:
+            #     print("DING DING DING!")
+            #     child.individual = best_individual
+            #     print("BEST INDIVIDUAL FITNESS: ", child.calculate_fitness())
         return children
 
     def breedPopulation(self):
@@ -347,6 +363,7 @@ class Individual():
 
         ocean_start_index = cum_sum[-1]
         self.ocean = self.individual[ocean_start_index:len(self.individual)]
+        self.empty_list = [[0 for x in range(grid_size)] for y in range(grid_size)]
 
     # FITNESS FUNCTIONS SUBJECT TO CHANGE!!!
     # Just a regular fitness function
@@ -416,7 +433,7 @@ class Individual():
         isl = 0
 
         # Incorporated a fitness value
-        fitness_val = len(center_coords)
+        fitness_val = 0
 
         # For each coordinate in an island, the coordinate's adjacent position must be within itself or the ocean.
         for island_start in cum_sum_butlast:
@@ -424,15 +441,29 @@ class Individual():
 
             # island is a list or splice of coordinates corresponding to an island
             island = self.individual[island_start:island_end]
+            other_islands = list(set(self.individual[0:cum_sum[-1]])-set(island))
+
+            # print("ISLAND: ", island)
+            # print("OTHER ISLANDS: ", other_islands)
 
             # An island will stay "Good" if it's isolated.
             good_island = True
 
-            for coord in island:
-                adjacents = adjacencies[coord]
-                for a in adjacents:
-                    # Ocean is just a list/splice of the ocean. It's in the init of the individual.
-                    if a not in self.ocean or a not in island:
+            # print("ISLAND: ", island)
+            ## TODO ##
+            # Extremely inefficient!! MAKE IT BETTER!
+            all_adjacents = []
+            if len(island) != 1:
+                for coord in island:
+                    adjacents = adjacencies[coord]
+                    for a in adjacents:
+                        all_adjacents.append(a)
+                all_adjacents_no_dupes = list(set(all_adjacents))
+                for a in all_adjacents_no_dupes:
+                    if a in other_islands:
+                        good_island = False
+                for coord in island:
+                    if coord not in all_adjacents_no_dupes:
                         good_island = False
 
             if good_island:
@@ -480,26 +511,29 @@ class Individual():
         return fitness_val
 
     # Returns a random island range
+    # Also does oceans now
     def random_island_range(self):
-        island_start_index = random.choice(range(len(cum_sum_butlast)))
+        island_start_index = random.choice(range(len(cum_sum)))
         # print("Island Indices being swapped: ",
         #       cum_sum[island_start_index:island_start_index+2])
         return cum_sum[island_start_index:island_start_index + 2]
 
+    def printAsMatrix(self):
 
-# Not sure if we need a Gene() class
-class Gene():
-    coordinate = tuple
-    island = bool
-    centerValue = int
-    connectedislands = int
+        island_number = 1
+        ct = 0
+        for x,y in self.individual:
+            if ct in cum_sum_butlast[1:]:
+                island_number += 1
+            elif ct >= cum_sum[-1]:
+                island_number = 0
 
-    def __init__(self):
-        pass
-        # Coordinates (Set first index of associated island as the pre-defined center value/island)
-        # Island or Ocean
-        # Center Value
-        # Total connected island or ocean
+            self.empty_list[x][y] = island_number
+
+            ct += 1
+
+        for row in self.empty_list:
+            print(row)
 
 
 def main():
@@ -532,15 +566,16 @@ def main():
     # population.printAsMatrix(0)
     
 
-    nurikabe = NurikabeGA(grid_size, center_coords, 200)
+    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=2000)
     nurikabe.geneticAlgorithm(
-        pop_size=800, mating_pool_size=100, elite_size=10, mutation_rate=.75)
+        pop_size=1000, mating_pool_size=800, elite_size=20, mutation_rate=0.5)
 
-    ind = Individual()
-    print(ind.individual)
+    # ind = Individual()
+    # print(ind.individual)
+
     # print(ind)
     # print(ind.isAdj((3,4),(3,3)))
-    print(ind.findConnected())
+    # print(ind.findConnected())
     return 0
 
 
