@@ -126,6 +126,7 @@ class NurikabeGA():
             if i % 10 == 0:
                 print("Generation ", i, ": Best Fitness = ", best_fitness)
                 print("Best Individual: ", best_individual.individual)
+                print("Connected Islands: ", best_individual.findConnected())
 
             population.breedPopulation()
 
@@ -374,6 +375,7 @@ class Individual():
         # isIsolated() will return a value indicating how many good (or isolated) islands there are.
         # A perfectly fit individual will have a fitness equal to the length.
         total_fitness += self.isIsolated()
+        total_fitness += self.connectedFitness()
 
         return total_fitness
 
@@ -392,40 +394,87 @@ class Individual():
     # For clarity
         x1,y1 = coord1
         x2,y2 = coord2
-        return abs(((x2-x1)+(y2-y1))) == 1
+        # return (abs(x1-x2) <= 1 and abs(y1-y2) <= 1)
+        return (abs(x2-x1) + abs(y2-y1) == 1)
+    
+    # checks a list to see if any is adj
+    def isAdjinList(self, coordlist, coord):
+        for coordinate in coordlist:
+            if self.isAdj(coordinate,coord):
+                return True
+        return False
+    
+    # returns the coordinate from coordlist1 that is adj to coordlist2 otherwise returns 0
+    def coordAdjbetweenTwoLists(self,coordlist1, coordlist2):
+        for coord1 in coordlist1:
+            for coord2 in coordlist2:
+                if(self.isAdj(coord1,coord2)):
+                    return coord1
+        return 0
 
-    # Kinda tough
-    # TODO
-    def findConnected(self):
-        # to know if a island is connected, the difference between each coordinate summed together must be |1|, example: (1,1)(1,2) = 1-1 + 1-2 = 1
-        # using cum sum, we can calculate the number of connected islands
-        # we can start by making a list of adjacent nodes
-
-        # Currently a work in progress
-        coordsAdj = []
-        first = False
-        numOfAdj = 0
+    # This puts everything in seperate lists. i could have put this in find connected, but
+    # this is easier to understand
+    # this will return as many lists as there are islands
+    def prepareIslandLists(self):
+        tempList = []
+        combinedLists = []
         for i in range(len(cum_sum)-1):
-            first = True
             for coord in self.individual[cum_sum[i]:cum_sum[i+1]]:
-                # First marks center coordinate
-                if(first):
-                    first = False
-                    center = coord
+                tempList.append(coord)
+            combinedLists.append(tempList)
+            tempList = [] 
+        return combinedLists
+            
+
+    # Returns a list of each connected island
+    # Eg: 4 islands will return something like [[(0,3),(1,3)],[(2,1)],[(2,3),(3,3)],[(4,1)]]
+    def findConnected(self):
+        # Preparing the list of islands for calculation
+        islands = self.prepareIslandLists()
+        # Initializing a list of connected Island coordinates
+        connectedIslands = []
+        # Initializing the list that will be used to check for adjacencies
+        coordsAdjinclCenter = []
+        # This Boolean will specify when to stop searching for adjacencies (when no match is found)
+        searching = True
+
+        for island in islands:
+            # Add the center and remove it from the island
+            coordsAdjinclCenter.append(island.pop(0))
+            while(searching):
+                # Compare coordsAdjinclCenter with island. If any adj is found, add it 
+                # to coordsAdjinclCenter and remove it from the island 
+
+                # Temporary variable to reduce cost
+                adjCoord = self.coordAdjbetweenTwoLists(island,coordsAdjinclCenter)
+                # If no adj is found, coordAdjbetweenTwoLists will return 0
+                if(adjCoord != 0):
+                    coordsAdjinclCenter.append(island.pop(island.index(adjCoord)))
                 else:
-                    if(self.isAdj(center,(coord))):
-                        numOfAdj += 1
-                        #Add to list of coordinates that are adj to the center then redo
-                        # have a rechecking counter
-                        coordsAdj.append(coord)
-                        # TODO restart procedure checking all coords in coordsadj using
-                        # self.individual[cum_sum[i]:cum_sum[i+1]]:
+                    # No matches found, stop the search
+                    searching = False
 
+            connectedIslands.append(coordsAdjinclCenter)
+            coordsAdjinclCenter = []
+            searching = True
+        return connectedIslands
+    
+    def connectedFitness(self):
+        connectedIslands = self.findConnected()
+        # give a big fitness bonus if the size of the island is the correct size
+        # first we have to identify the size each island must be
+        # Using list comprehension, I can use zip to combine the same list to subtract
+        # each value next to each other to give me the island sizes
+        bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
+        # print(connectedIslands)
 
-            # print(numOfAdj)
-            numOfAdj = 0
-            first = True
-        pass
+        # the sum of the list created from: if the island is > than the size, -1 point.
+        # if it is an incorrect size, then just add the the size of the island
+        # if it is a correct size then add the size of the island with a bonus 3. (larger correct islands give bigger points)
+        connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes 
+        else len(cIsland)+3 for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
+        return connectedFitness
+
 
     def isIsolated(self):
         # The island's adjacencies should only contain itself or an ocean.
@@ -570,12 +619,6 @@ def main():
     nurikabe.geneticAlgorithm(
         pop_size=1000, mating_pool_size=800, elite_size=20, mutation_rate=0.5)
 
-    # ind = Individual()
-    # print(ind.individual)
-
-    # print(ind)
-    # print(ind.isAdj((3,4),(3,3)))
-    # print(ind.findConnected())
     return 0
 
 
