@@ -110,7 +110,7 @@ class NurikabeGA():
                     for ind in pop.population:
                         fitness = ind.calculate_fitness()
                         if fitness > best_fitness:
-                            best_individual = ind
+                            best_individual.individual = ind.individual.copy()
                             best_fitness = fitness
                             best_generation = i
                     pop.breedPopulation()
@@ -137,7 +137,7 @@ class NurikabeGA():
                     # print("Individual: ", ind.individual)
                     fitness = ind.calculate_fitness()
                     if fitness > best_fitness:
-                        best_individual = ind
+                        best_individual.individual = ind.individual.copy()
                         best_fitness = fitness
                         best_generation = i
 
@@ -344,7 +344,7 @@ class Population():
             # if rand_chance < 0.1:
             #     print("DING DING DING!")
             #     child.individual = best_individual
-            #     print("BEST INDIVIDUAL FITNESS: ", child.calculate_fitness())
+                # print("BEST INDIVIDUAL FITNESS: ", child.calculate_fitness())
         return children
 
     def breedPopulation(self):
@@ -428,7 +428,7 @@ class Individual():
             total_fitness += self.connectedFitnessWeighted(island_focus)
 
         total_fitness += self.connectedFitness()
-        total_fitness += total_fitness + self.isIsolated()
+        total_fitness = total_fitness * self.isIsolated()/max_islands
 
         return total_fitness
 
@@ -524,7 +524,7 @@ class Individual():
         # if it is an incorrect size, then just add the the size of the island
         # if it is a correct size then add the size of the island with a bonus 3. (larger correct islands give bigger points)
         connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes 
-        else len(cIsland)+3 for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
+        else len(cIsland)+5 for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
         return connectedFitness
 
     # Specify which island gets a weight
@@ -532,7 +532,7 @@ class Individual():
         connectedIsland = self.findConnected()[island_number]
         bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
         bestIslandSize = bestIslandSizes[island_number]
-        islandFitness = bestIslandSize if len(connectedIsland) == bestIslandSize else len(connectedIsland) if len(connectedIsland) < bestIslandSize else len(connectedIsland) + (len(connectedIsland) - bestIslandSize)
+        islandFitness = bestIslandSize if len(connectedIsland) == bestIslandSize else len(connectedIsland) if len(connectedIsland) < bestIslandSize else len(connectedIsland) + (bestIslandSize - len(connectedIsland))
         return islandFitness - 1
 
     # This is the main isIsolated function that is currently in use.
@@ -576,7 +576,7 @@ class Individual():
                         good_island = False
 
             if good_island:
-                fitness_val += 1
+                fitness_val += center_coords_vals[isl]
 
             isl += 1
 
@@ -677,7 +677,7 @@ def main():
 
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=2000)
     nurikabe.geneticAlgorithm(
-        pop_size=1000, mating_pool_size=600, elite_size=100, mutation_rate=0.75, multi_objective_fitness=True)
+        pop_size=300, mating_pool_size=200, elite_size=100, mutation_rate=0.75, multi_objective_fitness=True)
 
     return 0
 
