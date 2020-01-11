@@ -96,47 +96,90 @@ class NurikabeGA():
     def geneticAlgorithm(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False):
         startTime = time.time()
 
-        population = Population(
-            pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate)
+        if multi_objective_fitness:
+            populations = []
+            for island in range(len(cum_sum_butlast)):
+                populations.append(Population(pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate, multi_objective_fitness=multi_objective_fitness, island_number=island))
+            
+            best_individual = Individual()
+            best_fitness = 0
+            best_generation = 0
 
-        best_individual = Individual()
-        best_fitness = 0
-        best_generation = 0
+            for i in range(0, self.generations):
+                for pop in populations:
+                    for ind in pop.population:
+                        fitness = ind.calculate_fitness()
+                        if fitness > best_fitness:
+                            best_individual = ind
+                            best_fitness = fitness
+                            best_generation = i
+                    pop.breedPopulation()
 
-        for i in range(0, self.generations):
-            for ind in population.population:
-                # print("Individual: ", ind.individual)
-                fitness = ind.calculate_fitness()
-                if fitness > best_fitness:
-                    best_individual = ind
-                    best_fitness = fitness
-                    best_generation = i
+                self.breedPopulations(populations)
 
-                if best_fitness == 4:
-                    break
+                if i % 10 == 0:
+                    print("Generation ", i, ": Best Fitness = ", best_fitness)
+                    print("Best Individual: ", best_individual.individual)
+                    print("Connected Islands: ", best_individual.findConnected())
+                    best_individual.printAsMatrix()
+                    
 
-            if best_fitness == 4:
-                print("Solution found in", round(
-                    time.time() - startTime, 2), "seconds")
-                print("Generation ", i, ": Best Fitness = ", best_fitness)
-                print("Best Individual: ", best_individual.individual)
-                best_individual.printAsMatrix()
-                break
+        else:
+            population = Population(
+                pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate)
 
-            if i % 10 == 0:
-                print("Generation ", i, ": Best Fitness = ", best_fitness)
-                print("Best Individual: ", best_individual.individual)
-                print("Connected Islands: ", best_individual.findConnected())
+            best_individual = Individual()
+            best_fitness = 0
+            best_generation = 0
 
-            population.breedPopulation()
+            for i in range(0, self.generations):
+                for ind in population.population:
+                    # print("Individual: ", ind.individual)
+                    fitness = ind.calculate_fitness()
+                    if fitness > best_fitness:
+                        best_individual = ind
+                        best_fitness = fitness
+                        best_generation = i
 
-    def mutate(self):
-        pass
+                    # if best_fitness == 4:
+                    #     break
+
+                # if best_fitness == 4:
+                #     print("Solution found in", round(
+                #         time.time() - startTime, 2), "seconds")
+                #     print("Generation ", i, ": Best Fitness = ", best_fitness)
+                #     print("Best Individual: ", best_individual.individual)
+                #     best_individual.printAsMatrix()
+                #     break
+
+                if i % 10 == 0:
+                    print("Generation ", i, ": Best Fitness = ", best_fitness)
+                    print("Best Individual: ", best_individual.individual)
+                    print("Connected Islands: ", best_individual.findConnected())
+
+                population.breedPopulation()
+
+    def breedPopulations(self, populations):
+        random.shuffle(populations)
+        for x in range(len(populations)-1):
+            cur_pop = populations[x]
+            next_pop = populations[x+1]
+
+            ind_num = 0
+            for ind in populations[x].population:
+                breed_chance = random.random()
+                if breed_chance < 0.5:
+                    ind = populations[x+1].population[ind_num]
+                else:
+                    populations[x].population[ind_num] = ind
+                ind_num += 1
+
+
 
 
 class Population():
 
-    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False):
+    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False, island_number=-1):
 
         self.population = []
 
@@ -144,6 +187,8 @@ class Population():
         self.mating_pool_size = mating_pool_size
         self.elite_size = elite_size
         self.mutation_rate = mutation_rate
+        self.multi_objective_fitness = multi_objective_fitness
+        self.island_number = island_number
 
         for _ in range(pop_size):
             self.population.append(Individual(multi_objective_fitness))
@@ -156,8 +201,12 @@ class Population():
 
         sample = random.sample(self.population, k=self.mating_pool_size)
 
-        for individual in sample:
-            mating_pool.append([individual, individual.calculate_fitness()])
+        if self.multi_objective_fitness:
+            for individual in sample:
+                mating_pool.append([individual, individual.calculate_fitness()])
+        else:
+            for individual in sample:
+                mating_pool.append([individual, individual.calculate_fitness()])
 
         sorted_pool = sorted(mating_pool, key=lambda x: x[1], reverse=True)
         only_mates = [x for x, y in sorted_pool]
@@ -369,13 +418,17 @@ class Individual():
     # FITNESS FUNCTIONS SUBJECT TO CHANGE!!!
     # Just a regular fitness function
 
-    def calculate_fitness(self):
+    def calculate_fitness(self, island_focus=-1):
         total_fitness = 0
 
         # isIsolated() will return a value indicating how many good (or isolated) islands there are.
         # A perfectly fit individual will have a fitness equal to the length.
-        total_fitness += self.isIsolated()
+
+        if island_focus != -1:
+            total_fitness += self.connectedFitnessWeighted(island_focus)
+
         total_fitness += self.connectedFitness()
+        total_fitness += total_fitness + self.isIsolated()
 
         return total_fitness
 
@@ -466,7 +519,6 @@ class Individual():
         # Using list comprehension, I can use zip to combine the same list to subtract
         # each value next to each other to give me the island sizes
         bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
-        # print(connectedIslands)
 
         # the sum of the list created from: if the island is > than the size, -1 point.
         # if it is an incorrect size, then just add the the size of the island
@@ -475,7 +527,15 @@ class Individual():
         else len(cIsland)+3 for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
         return connectedFitness
 
+    # Specify which island gets a weight
+    def connectedFitnessWeighted(self, island_number):
+        connectedIsland = self.findConnected()[island_number]
+        bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
+        bestIslandSize = bestIslandSizes[island_number]
+        islandFitness = bestIslandSize if len(connectedIsland) == bestIslandSize else len(connectedIsland) if len(connectedIsland) < bestIslandSize else len(connectedIsland) + (len(connectedIsland) - bestIslandSize)
+        return islandFitness - 1
 
+    # This is the main isIsolated function that is currently in use.
     def isIsolated(self):
         # The island's adjacencies should only contain itself or an ocean.
         # Keeps track of iterations
@@ -617,7 +677,7 @@ def main():
 
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=2000)
     nurikabe.geneticAlgorithm(
-        pop_size=1000, mating_pool_size=800, elite_size=20, mutation_rate=0.5)
+        pop_size=1000, mating_pool_size=600, elite_size=100, mutation_rate=0.75, multi_objective_fitness=True)
 
     return 0
 
