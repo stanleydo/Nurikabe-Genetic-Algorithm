@@ -7,6 +7,7 @@
 import random
 from operator import itemgetter
 import time
+from numpy.random import choice
 
 # SAMPLE
 # 0 0 0 5 0
@@ -115,14 +116,14 @@ class NurikabeGA():
                             best_generation = i
                     pop.breedPopulation()
 
-                self.breedPopulations(populations)
-
                 if i % 10 == 0:
                     print("Generation ", i, ": Best Fitness = ", best_fitness)
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
+                    print("Connected Oceans: ", best_individual.findConnectedOcean())
                     best_individual.printAsMatrix()
-                    
+
+                self.breedPopulations(populations)
 
         else:
             population = Population(
@@ -141,21 +142,12 @@ class NurikabeGA():
                         best_fitness = fitness
                         best_generation = i
 
-                    # if best_fitness == 4:
-                    #     break
-
-                # if best_fitness == 4:
-                #     print("Solution found in", round(
-                #         time.time() - startTime, 2), "seconds")
-                #     print("Generation ", i, ": Best Fitness = ", best_fitness)
-                #     print("Best Individual: ", best_individual.individual)
-                #     best_individual.printAsMatrix()
-                #     break
-
                 if i % 10 == 0:
                     print("Generation ", i, ": Best Fitness = ", best_fitness)
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
+                    print("Connected Oceans: ", best_individual.findConnectedOcean())
+                    best_individual.printAsMatrix()
 
                 population.breedPopulation()
 
@@ -193,8 +185,6 @@ class Population():
         for _ in range(pop_size):
             self.population.append(Individual(multi_objective_fitness))
 
-    # How should we pick our mating pool?
-    # I think Abbott likes having a little bit of tournament selection -
     # - Selecting a random sample (like 100), then evaluating fitness and sorting them from best to worst.
     def getMatingPool(self):
         mating_pool = []
@@ -325,19 +315,23 @@ class Population():
 
     # Mutates all of the individual in a given population
     # In this case, it should be all the children
-
     def mutate(self, children):
         for child in children:
+            # Every child has a chance to have random coordinates swapped
             rand_chance = random.random()
+
             if rand_chance < self.mutation_rate:
-                # print("Before Mutated Child: ", child.individual)
-                random_land = random.randint(0, max_islands-1)
-                while random_land in cum_sum_butlast:
+                swaps_at_a_time = random.randint(1, 2)
+                for _ in range(swaps_at_a_time):
                     random_land = random.randint(0, max_islands-1)
-                random_ocean = random.randint(max_islands, list_size-1)
-                temp_coord = child.individual[random_land]
-                child.individual[random_land] = child.individual[random_ocean]
-                child.individual[random_ocean] = temp_coord
+                    while random_land in cum_sum_butlast:
+                        random_land = random.randint(0, max_islands-1)
+                    random_ocean = random.randint(max_islands, list_size-1)
+                    temp_coord = child.individual[random_land]
+                    child.individual[random_land] = child.individual[random_ocean]
+                    child.individual[random_ocean] = temp_coord
+            else:
+                child.propogationMutation()
                 # print("After Mutated Child: ", child.individual)
             # This will mutate the individual into the solution
             # Use this for testing #
@@ -411,15 +405,14 @@ class Individual():
                 # Pop & append a coordinate from the newly created randomized list of valid coords to the individual.
                 self.individual.append(random_valid_coords.pop())
 
-        ocean_start_index = cum_sum[-1]
-        self.ocean = self.individual[ocean_start_index:len(self.individual)]
+        self.ocean_start_index = cum_sum[-1]
         self.empty_list = [[0 for x in range(grid_size)] for y in range(grid_size)]
 
     # FITNESS FUNCTIONS SUBJECT TO CHANGE!!!
     # Just a regular fitness function
 
     def calculate_fitness(self, island_focus=-1):
-        total_fitness = 0
+        total_fitness = 0.0
 
         # isIsolated() will return a value indicating how many good (or isolated) islands there are.
         # A perfectly fit individual will have a fitness equal to the length.
@@ -427,8 +420,28 @@ class Individual():
         if island_focus != -1:
             total_fitness += self.connectedFitnessWeighted(island_focus)
 
-        total_fitness += self.connectedFitness()
-        total_fitness = total_fitness * self.isIsolated()/max_islands
+        general_islands_fitness = self.connectedFitness()
+        oceans_fitness = self.connectedFitnessOcean()
+        isolation_fitness = self.isIsolated()
+
+        islands_weight = 1.0
+        oceans_weight = 1.0
+        isolation_weight = 1.0
+        if general_islands_fitness == len(center_coords) and oceans_fitness <= 2*len(center_coords) and isolation_fitness == len(center_coords):
+            oceans_weight = 1.5
+            islands_weight = 0.75
+            isolation_weight = 0.25
+        elif general_islands_fitness <= len(center_coords) and oceans_fitness == 2*len(center_coords) and isolation_fitness == len(center_coords):
+            islands_weight = 1.5
+            oceans_weight = 0.75
+            isolation_weight = 0.25
+
+
+        total_fitness += general_islands_fitness * islands_weight
+        total_fitness += oceans_fitness * oceans_weight
+        # total_fitness = total_fitness * self.isIsolated()/len(center_coords)
+
+        total_fitness += self.isIsolated() * len(center_coords) * isolation_weight
 
         return total_fitness
 
@@ -477,7 +490,6 @@ class Individual():
             combinedLists.append(tempList)
             tempList = [] 
         return combinedLists
-            
 
     # Returns a list of each connected island
     # Eg: 4 islands will return something like [[(0,3),(1,3)],[(2,1)],[(2,3),(3,3)],[(4,1)]]
@@ -511,6 +523,29 @@ class Individual():
             coordsAdjinclCenter = []
             searching = True
         return connectedIslands
+
+    # Same as findConnected() but specifically for oceans
+    def findConnectedOcean(self):
+        ocean = self.individual[self.ocean_start_index:len(self.individual)]
+        # Initializing a list of connected Island coordinates
+        connectedOceans = []
+        # Initializing the list that will be used to check for adjacencies
+        coordsAdjinclCenter = []
+        # This Boolean will specify when to stop searching for adjacencies (when no match is found)
+        searching = True
+
+        coordsAdjinclCenter.append(ocean.pop(0))
+        while(searching):
+            adjCoord = self.coordAdjbetweenTwoLists(ocean,coordsAdjinclCenter)
+            # print("adJCOORD ", adjCoord)
+            if(adjCoord != 0):
+                coordsAdjinclCenter.append(ocean.pop(ocean.index(adjCoord)))
+            else:
+                # No matches found, stop the search
+                searching = False
+
+        connectedOceans.append(coordsAdjinclCenter)
+        return connectedOceans
     
     def connectedFitness(self):
         connectedIslands = self.findConnected()
@@ -523,8 +558,22 @@ class Individual():
         # the sum of the list created from: if the island is > than the size, -1 point.
         # if it is an incorrect size, then just add the the size of the island
         # if it is a correct size then add the size of the island with a bonus 3. (larger correct islands give bigger points)
-        connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes 
-        else len(cIsland)+5 for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
+
+        # Original Code Below
+        # connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes
+        # else len(cIsland)+3 for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
+
+        # Changed for some testing
+        connectedFitness = sum([0 if len(cIsland) > sizes else len(cIsland)/sizes if len(cIsland) != sizes
+        else 1 for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
+
+        return connectedFitness
+
+    def connectedFitnessOcean(self):
+        connectedOceans = self.findConnectedOcean()
+        # print("CONN OCEANS, ", len(connectedOceans))
+        # print("max WATERS : ", max_waters)
+        connectedFitness = 2*len(center_coords) if len(connectedOceans) == max_waters else -len(connectedOceans)*len(center_coords)/max_waters
         return connectedFitness
 
     # Specify which island gets a weight
@@ -576,7 +625,7 @@ class Individual():
                         good_island = False
 
             if good_island:
-                fitness_val += center_coords_vals[isl]
+                fitness_val += 1
 
             isl += 1
 
@@ -606,7 +655,7 @@ class Individual():
                 adjacents = adjacencies[coord]
                 for a in adjacents:
                     # Ocean is just a list/splice of the ocean. It's in the init of the individual.
-                    if a not in self.ocean or a not in island:
+                    if a not in self.individual[self.ocean_start_index:len(self.individual)] or a not in island:
                         good_island = False
 
             #
@@ -626,6 +675,58 @@ class Individual():
         # print("Island Indices being swapped: ",
         #       cum_sum[island_start_index:island_start_index+2])
         return cum_sum[island_start_index:island_start_index + 2]
+
+    # Finds an island that has incomplete connections
+    # Returns the island number (or index)
+    def shortIsland(self):
+        islands = self.findConnected()
+
+        island_number = 0
+        for island in islands:
+            if len(island) != center_coords_vals[island_number]:
+                return island_number,island
+            else:
+                island_number += 1
+        return -1,[]
+
+    # Finds out where an island can be swapped with ocean to achieve full connection
+    def addToShortIsland(self):
+        # The starting index for cum_sum of the island, and the actual connected islands
+        short_island_index,connected_islands = self.shortIsland()
+
+        if short_island_index == -1:
+            return ()
+        # The full island
+        short_island = self.individual[cum_sum[short_island_index]:cum_sum[short_island_index+1]]
+
+        # Find coordinates that are not connected
+        replacement_coordinates = set(short_island) - set(connected_islands)
+
+        # Find any possible adjacent oceans that these coordinates can take around the actual connected
+        coords_all_adjacent = set([x for sub in [adjacencies[coord] for coord in connected_islands] for x in sub])
+        valid_adjacents_in_ocean = coords_all_adjacent.intersection(set(self.individual[self.ocean_start_index:len(self.individual)]))
+
+        return (list(replacement_coordinates), list(valid_adjacents_in_ocean))
+
+    def propogationMutation(self):
+        if len(self.addToShortIsland()) != 0:
+            replacement_coordinates, valid_adjacents_in_ocean = self.addToShortIsland()
+            random.shuffle(valid_adjacents_in_ocean)
+
+            for coord in replacement_coordinates:
+                my_index = self.individual.index(coord)
+                if valid_adjacents_in_ocean:
+                    ocean_index = self.individual.index(valid_adjacents_in_ocean.pop())
+                    temp_coord = coord
+                    self.individual[my_index] = self.individual[ocean_index]
+                    self.individual[ocean_index] = temp_coord
+        else:
+            pass
+
+
+
+
+
 
     def printAsMatrix(self):
 
@@ -675,9 +776,9 @@ def main():
     # population.printAsMatrix(0)
     
 
-    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=2000)
+    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
-        pop_size=300, mating_pool_size=200, elite_size=100, mutation_rate=0.75, multi_objective_fitness=True)
+        pop_size=500, mating_pool_size=250, elite_size=50, mutation_rate=0.5, multi_objective_fitness=True)
 
     return 0
 
