@@ -625,9 +625,9 @@ def main():
     # print("cum_sum = list of INDICES where an island/ocean starts. Last element is the index where ocean starts. --> ", cum_sum, "\n")
     # print("cum_sum_butlast = ", cum_sum_butlast)
 
-    individual = Individual()
+    # individual = Individual()
     # print("individual = ", individual)
-    print(individual.connectedOceanFitness2())
+    # print(individual.connectedOceanFitness2())
     # print("Individual Fitness: ", individual.calculate_fitness())
 
     # population = Population(
@@ -642,9 +642,9 @@ def main():
     
     
 
-    # nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=2000)
-    # nurikabe.geneticAlgorithm(
-    #     pop_size=1000, mating_pool_size=800, elite_size=20, mutation_rate=0.5)
+    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=2000)
+    nurikabe.geneticAlgorithm(
+        pop_size=1000, mating_pool_size=800, elite_size=20, mutation_rate=0.5)
 
     return 0
 
