@@ -172,7 +172,7 @@ class NurikabeGA():
 
 class Population():
 
-    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False):
+    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False, island_number=-1):
 
         self.population = []
 
@@ -180,6 +180,7 @@ class Population():
         self.mating_pool_size = mating_pool_size
         self.elite_size = elite_size
         self.mutation_rate = mutation_rate
+        self.island_number = island_number
 
         for _ in range(pop_size):
             self.population.append(Individual(multi_objective_fitness))
@@ -591,12 +592,12 @@ class Individual():
         connectedOceans = self.findConnectedOcean()
 
         # A different connectedFitness for testing
-        # connectedFitness = 2*len(center_coords) if len(connectedOceans) == max_waters else -len(connectedOceans)*len(center_coords)/max_waters
+        connectedFitness = 2*len(center_coords) if len(connectedOceans) == max_waters else -len(connectedOceans)*len(center_coords)/max_waters
         
         # Update: i realized that a bonus 3 would mean that small islands with correct size would not be valuable
         # so instead, full size islands will get a max fitness, which is the highest island cost
-        connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes 
-        else bestScore for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
+        # connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes 
+        # else bestScore for (cIsland, sizes) in zip(connectedOceans, bestIslandSizes)])
         return connectedFitness
 
 
