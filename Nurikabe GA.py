@@ -166,12 +166,13 @@ class NurikabeGA():
                     populations[x].population[ind_num] = ind
                 ind_num += 1
 
-
+    def mutate(self):
+        pass
 
 
 class Population():
 
-    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False, island_number=-1):
+    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False):
 
         self.population = []
 
@@ -179,8 +180,6 @@ class Population():
         self.mating_pool_size = mating_pool_size
         self.elite_size = elite_size
         self.mutation_rate = mutation_rate
-        self.multi_objective_fitness = multi_objective_fitness
-        self.island_number = island_number
 
         for _ in range(pop_size):
             self.population.append(Individual(multi_objective_fitness))
@@ -191,12 +190,8 @@ class Population():
 
         sample = random.sample(self.population, k=self.mating_pool_size)
 
-        if self.multi_objective_fitness:
-            for individual in sample:
-                mating_pool.append([individual, individual.calculate_fitness()])
-        else:
-            for individual in sample:
-                mating_pool.append([individual, individual.calculate_fitness()])
+        for individual in sample:
+            mating_pool.append([individual, individual.calculate_fitness()])
 
         sorted_pool = sorted(mating_pool, key=lambda x: x[1], reverse=True)
         only_mates = [x for x, y in sorted_pool]
@@ -338,7 +333,7 @@ class Population():
             # if rand_chance < 0.1:
             #     print("DING DING DING!")
             #     child.individual = best_individual
-                # print("BEST INDIVIDUAL FITNESS: ", child.calculate_fitness())
+            #     print("BEST INDIVIDUAL FITNESS: ", child.calculate_fitness())
         return children
 
     def breedPopulation(self):
@@ -546,6 +541,28 @@ class Individual():
 
         connectedOceans.append(coordsAdjinclCenter)
         return connectedOceans
+    # TODO: check for the longest length ocean, not just the ones adj to the first
+    def findConnectedOceans2(self):
+        searching = True
+        coordsAdjtoFirst = []
+        ocean = self.individual[cum_sum[-1]:]
+        coordsAdjtoFirst.append(ocean.pop(0))
+        while(searching):
+            adjCoord = self.coordAdjbetweenTwoLists(ocean,coordsAdjtoFirst)
+            if(adjCoord != 0):
+                coordsAdjtoFirst.append(ocean.pop(ocean.index(adjCoord)))
+            else:
+                searching = False
+        return coordsAdjtoFirst
+    
+    def connectedOceanFitness2(self):
+        bestOceanSize = list_size - cum_sum[-1]
+        connectedOcean = self.findConnectedOceans2()
+        if(len(connectedOcean) == bestOceanSize):
+            # double the points if its the right size
+            return bestOceanSize * 2
+        return len(connectedOcean)
+
     
     def connectedFitness(self):
         connectedIslands = self.findConnected()
@@ -554,6 +571,7 @@ class Individual():
         # Using list comprehension, I can use zip to combine the same list to subtract
         # each value next to each other to give me the island sizes
         bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
+        bestScore = max(bestIslandSizes)
 
         # the sum of the list created from: if the island is > than the size, -1 point.
         # if it is an incorrect size, then just add the the size of the island
@@ -571,20 +589,17 @@ class Individual():
 
     def connectedFitnessOcean(self):
         connectedOceans = self.findConnectedOcean()
-        # print("CONN OCEANS, ", len(connectedOceans))
-        # print("max WATERS : ", max_waters)
-        connectedFitness = 2*len(center_coords) if len(connectedOceans) == max_waters else -len(connectedOceans)*len(center_coords)/max_waters
+
+        # A different connectedFitness for testing
+        # connectedFitness = 2*len(center_coords) if len(connectedOceans) == max_waters else -len(connectedOceans)*len(center_coords)/max_waters
+        
+        # Update: i realized that a bonus 3 would mean that small islands with correct size would not be valuable
+        # so instead, full size islands will get a max fitness, which is the highest island cost
+        connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes 
+        else bestScore for (cIsland, sizes) in zip(connectedIslands, bestIslandSizes)])
         return connectedFitness
 
-    # Specify which island gets a weight
-    def connectedFitnessWeighted(self, island_number):
-        connectedIsland = self.findConnected()[island_number]
-        bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
-        bestIslandSize = bestIslandSizes[island_number]
-        islandFitness = bestIslandSize if len(connectedIsland) == bestIslandSize else len(connectedIsland) if len(connectedIsland) < bestIslandSize else len(connectedIsland) + (bestIslandSize - len(connectedIsland))
-        return islandFitness - 1
 
-    # This is the main isIsolated function that is currently in use.
     def isIsolated(self):
         # The island's adjacencies should only contain itself or an ocean.
         # Keeps track of iterations
@@ -763,7 +778,7 @@ def main():
 
     # individual = Individual()
     # print("individual = ", individual)
-    # individual.findConnected()
+    # print(individual.connectedOceanFitness2())
     # print("Individual Fitness: ", individual.calculate_fitness())
 
     # population = Population(
@@ -771,9 +786,11 @@ def main():
     # print(population.getMatingPool())
     # print("Population = ", population)
 
+
     # The tool to print an individual in a population
     # print("Individual #0:")
     # population.printAsMatrix(0)
+    
     
 
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
