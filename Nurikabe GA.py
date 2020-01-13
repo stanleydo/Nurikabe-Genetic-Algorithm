@@ -165,7 +165,10 @@ class NurikabeGA():
                 else:
                     populations[x].population[ind_num] = ind
                 ind_num += 1
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5f38c6b2bff383c272b2665fc441798f7dc44c6e
 
 
 
@@ -179,7 +182,10 @@ class Population():
         self.mating_pool_size = mating_pool_size
         self.elite_size = elite_size
         self.mutation_rate = mutation_rate
+<<<<<<< HEAD
         self.multi_objective_fitness = multi_objective_fitness
+=======
+>>>>>>> 5f38c6b2bff383c272b2665fc441798f7dc44c6e
         self.island_number = island_number
 
         for _ in range(pop_size):
@@ -546,7 +552,33 @@ class Individual():
 
         connectedOceans.append(coordsAdjinclCenter)
         return connectedOceans
+<<<<<<< HEAD
 
+=======
+    # TODO: check for the longest length ocean, not just the ones adj to the first
+    def findConnectedOceans2(self):
+        searching = True
+        coordsAdjtoFirst = []
+        ocean = self.individual[cum_sum[-1]:]
+        coordsAdjtoFirst.append(ocean.pop(0))
+        while(searching):
+            adjCoord = self.coordAdjbetweenTwoLists(ocean,coordsAdjtoFirst)
+            if(adjCoord != 0):
+                coordsAdjtoFirst.append(ocean.pop(ocean.index(adjCoord)))
+            else:
+                searching = False
+        return coordsAdjtoFirst
+    
+    def connectedOceanFitness2(self):
+        bestOceanSize = list_size - cum_sum[-1]
+        connectedOcean = self.findConnectedOceans2()
+        if(len(connectedOcean) == bestOceanSize):
+            # double the points if its the right size
+            return bestOceanSize * 2
+        return len(connectedOcean)
+
+    
+>>>>>>> 5f38c6b2bff383c272b2665fc441798f7dc44c6e
     def connectedFitness(self):
         connectedIslands = self.findConnected()
         # give a big fitness bonus if the size of the island is the correct size
@@ -571,9 +603,17 @@ class Individual():
 
     def connectedFitnessOcean(self):
         connectedOceans = self.findConnectedOcean()
-        # print("CONN OCEANS, ", len(connectedOceans))
-        # print("max WATERS : ", max_waters)
+
+        # A different connectedFitness for testing
         connectedFitness = 2*len(center_coords) if len(connectedOceans) == max_waters else -len(connectedOceans)*len(center_coords)/max_waters
+<<<<<<< HEAD
+=======
+        
+        # Update: i realized that a bonus 3 would mean that small islands with correct size would not be valuable
+        # so instead, full size islands will get a max fitness, which is the highest island cost
+        # connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes 
+        # else bestScore for (cIsland, sizes) in zip(connectedOceans, bestIslandSizes)])
+>>>>>>> 5f38c6b2bff383c272b2665fc441798f7dc44c6e
         return connectedFitness
 
     # Specify which island gets a weight
