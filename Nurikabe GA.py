@@ -101,7 +101,7 @@ class NurikabeGA():
             populations = []
             for island in range(len(cum_sum_butlast)):
                 populations.append(Population(pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate, multi_objective_fitness=multi_objective_fitness, island_number=island))
-            
+
             best_individual = Individual()
             best_fitness = 0
             best_generation = 0
@@ -462,14 +462,14 @@ class Individual():
         x2,y2 = coord2
         # return (abs(x1-x2) <= 1 and abs(y1-y2) <= 1)
         return (abs(x2-x1) + abs(y2-y1) == 1)
-    
+
     # checks a list to see if any is adj
     def isAdjinList(self, coordlist, coord):
         for coordinate in coordlist:
             if self.isAdj(coordinate,coord):
                 return True
         return False
-    
+
     # returns the coordinate from coordlist1 that is adj to coordlist2 otherwise returns 0
     def coordAdjbetweenTwoLists(self,coordlist1, coordlist2):
         for coord1 in coordlist1:
@@ -488,7 +488,7 @@ class Individual():
             for coord in self.individual[cum_sum[i]:cum_sum[i+1]]:
                 tempList.append(coord)
             combinedLists.append(tempList)
-            tempList = [] 
+            tempList = []
         return combinedLists
 
     # Returns a list of each connected island
@@ -507,8 +507,8 @@ class Individual():
             # Add the center and remove it from the island
             coordsAdjinclCenter.append(island.pop(0))
             while(searching):
-                # Compare coordsAdjinclCenter with island. If any adj is found, add it 
-                # to coordsAdjinclCenter and remove it from the island 
+                # Compare coordsAdjinclCenter with island. If any adj is found, add it
+                # to coordsAdjinclCenter and remove it from the island
 
                 # Temporary variable to reduce cost
                 adjCoord = self.coordAdjbetweenTwoLists(island,coordsAdjinclCenter)
@@ -546,7 +546,7 @@ class Individual():
 
         connectedOceans.append(coordsAdjinclCenter)
         return connectedOceans
-    
+
     def connectedFitness(self):
         connectedIslands = self.findConnected()
         # give a big fitness bonus if the size of the island is the correct size
@@ -774,7 +774,7 @@ def main():
     # The tool to print an individual in a population
     # print("Individual #0:")
     # population.printAsMatrix(0)
-    
+
 
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
