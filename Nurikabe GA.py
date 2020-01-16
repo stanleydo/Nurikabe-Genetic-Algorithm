@@ -366,6 +366,13 @@ class Individual():
         self.ocean = self.individual[ocean_start_index:len(self.individual)]
         self.empty_list = [[0 for x in range(grid_size)] for y in range(grid_size)]
 
+        # Create a list of possible squares. from 1 to -2, 2 to -1 for x and y 
+        # This is makes searching for ocean squares less costly
+        self.squares = []
+        for i in range(grid_size-1):
+            for j in range(grid_size-1):
+                self.squares.append(((i,j),(i+1,j),(i,j+1),(i+1,j+1)))
+
     # FITNESS FUNCTIONS SUBJECT TO CHANGE!!!
     # Just a regular fitness function
 
@@ -481,6 +488,12 @@ class Individual():
             return bestOceanSize * 2
         return len(connectedOcean)
 
+    # Returns whether or not there is a square in the ocean
+    def isOceanSquare(self):
+        for square in self.squares:
+            if(set(square).issubset(self.individual[cum_sum[-1]:])):
+                return True
+        return False
     
     def connectedFitness(self):
         connectedIslands = self.findConnected()
@@ -642,7 +655,7 @@ def main():
     
     
 
-    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=2000)
+    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=100)
     nurikabe.geneticAlgorithm(
         pop_size=1000, mating_pool_size=800, elite_size=20, mutation_rate=0.5)
 
