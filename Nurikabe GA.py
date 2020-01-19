@@ -172,7 +172,8 @@ class NurikabeGA():
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
                     print("Connected Oceans: ", best_individual.findConnectedOcean())
-                    print("Islands Isolated: ", best_individual.isIsolated())
+                    print("# Islands Isolated: ", best_individual.isIsolated())
+                    print("Islands Not Isolated: ", best_individual.islandsNotIsolated())
                     best_individual.printAsMatrix()
 
                 avg_fitness = 0
@@ -724,13 +725,13 @@ class Individual():
 
     # Returns a list with each index corresponding to an island.
     # [-1, 1, -1] means the first island is not isolated, while the second one is. Third island is not isolated.
-    def islandsIsolated(self):
-        # The island's adjacencies should only be within itself or within an ocean.
+    def islandsNotIsolated(self):
+        # The island's adjacencies should only contain itself or an ocean.
         # Keeps track of iterations
         isl = 0
 
         # Incorporated a fitness value
-        fitness_val = []
+        isolated_islands = []
 
         # For each coordinate in an island, the coordinate's adjacent position must be within itself or the ocean.
         for island_start in cum_sum_butlast:
@@ -738,26 +739,34 @@ class Individual():
 
             # island is a list or splice of coordinates corresponding to an island
             island = self.individual[island_start:island_end]
+            other_islands = list(set(self.individual[0:cum_sum[-1]])-set(island))
 
             # An island will stay "Good" if it's isolated.
             good_island = True
 
+            ## TODO ##
+            # Extremely inefficient!! MAKE IT BETTER!
+            all_adjacents = []
             for coord in island:
                 adjacents = adjacencies[coord]
                 for a in adjacents:
-                    # Ocean is just a list/splice of the ocean. It's in the init of the individual.
-                    if a not in self.individual[self.ocean_start_index:len(self.individual)] or a not in island:
-                        good_island = False
+                    all_adjacents.append(a)
+            all_adjacents_no_dupes = set(all_adjacents)
+            for coord in island:
+                if coord not in all_adjacents_no_dupes and len(island) != 1:
+                    good_island = False
+            for a in all_adjacents_no_dupes:
+                if a in other_islands:
+                    good_island = False
 
-            #
-            if not good_island:
-                fitness_val.append(-1)
+            if good_island:
+                pass
             else:
-                fitness_val.append(1)
+                isolated_islands.append(island)
 
             isl += 1
 
-        return fitness_val
+        return isolated_islands
 
     # Returns a random island range
     # Also does oceans now
