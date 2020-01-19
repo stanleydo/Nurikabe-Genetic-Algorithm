@@ -166,7 +166,6 @@ class NurikabeGA():
                     break
 
                 if i % 10 == 0:
-                    print()
                     print("Average Fitness: ", avg_fitness/pop_size)
                     print("Generation ", i, ": Best Fitness = ", best_fitness)
                     print("Best Individual: ", best_individual.individual)
@@ -489,8 +488,6 @@ class Individual():
         else:
             total_fitness += self.connectedFitness()
 
-        total_fitness -= self.numOceanSquares()
-
         return total_fitness
 
     # focus_island should be an island index that we want to focus on
@@ -629,13 +626,42 @@ class Individual():
             if(set(square).issubset(self.individual[cum_sum[-1]:])):
                 return square
         return 0
+    
+    # returns a list of adj coordinates
+    # size is the length of the side of the grid eg. (5x5) = 5
+    def adjCoords(self, coord):
+        adjCoords = []
+        x,y = coord
+        if (x > 0):
+            adjCoords.append((x-1,y))
+        if (y > 0):
+            adjCoords.append((x,y-1))
+        if (x < grid_size-1):
+            adjCoords.append((x+1,y))
+        if(y < grid_size-1):
+            adjCoords.append((x,y+1))
+        return adjCoords
 
-    def numOceanSquares(self):
-        sum = 0
-        for square in self.squares:
-            if(set(square).issubset(self.individual[cum_sum[-1]:])):
-                sum +=1
-        return sum
+    # Given a coordinate returns whether or not it is an island
+    def isIsland(self,coord):
+        if(self.individual.index(coord) < cum_sum[-1]):
+            return True
+        return False
+    
+    def isolateSingleIsland(self, coord):
+        # Check all the adj if theyre islands
+        adjIslands = []
+        for coordinate in self.adjCoords(coord):
+            if(self.isIsland(coordinate)):
+                adjIslands.append(coordinate)
+        
+        # For each island found, swap it with a random ocean
+        for island in adjIslands:
+            randomOceanIndex = self.individual.index(random.choice(self.individual[cum_sum[-1]:]))
+            tempIsland = island
+            self.individual[self.individual.index(island)] = self.individual[randomOceanIndex]
+            self.individual[randomOceanIndex] = tempIsland
+
 
     def connectedFitness(self):
         connectedIslands = self.findConnected()
@@ -876,8 +902,7 @@ class Individual():
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
-        pop_size=1000, mating_pool_size=750, elite_size=50, mutation_rate=0.5, multi_objective_fitness=False)
-
+        pop_size=250, mating_pool_size=200, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
 
     return 0
 
