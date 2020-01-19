@@ -171,11 +171,7 @@ class NurikabeGA():
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
                     print("Connected Oceans: ", best_individual.findConnectedOcean())
-<<<<<<< HEAD
-                    print("Number of Isolated Islands: ", best_individual.isIsolated())
-=======
                     print("Islands Isolated: ", best_individual.isIsolated())
->>>>>>> e241e49e975d7e54c8419ede5b64ff31065a10fc
                     best_individual.printAsMatrix()
 
                 avg_fitness = 0
@@ -362,9 +358,6 @@ class Population():
             rand_chance = random.random()
             squareOcean = child.findFirstOceanSquare()
 
-            # if(squareOcean != 0):
-            #     print(squareOcean)
-            #     child.fixASquare(squareOcean)
 
             if rand_chance < self.mutation_rate:
                 swaps_at_a_time = random.randint(1, max_swaps)
@@ -378,6 +371,12 @@ class Population():
                     child.individual[random_ocean] = temp_coord
             else:
                 child.propogationMutation()
+
+            # Fixing a random coordinate in a square ocean
+            if(squareOcean != 0):
+                # print(squareOcean)
+                child.fixASquare(squareOcean)
+
                 # print("After Mutated Child: ", child.individual)
             # This will mutate the individual into the solution
             # Use this for testing #
@@ -833,19 +832,21 @@ class Individual():
     def fixASquare(self, square):
         # Ocean
         if (square != 0):
-            print("test")
+            # print("test")
             random_ocean_coord = random.choice(square)
-            print(random_ocean_coord)
+            # print("random ocean coord: ", random_ocean_coord)
             random_ocean_index = self.individual.index(random_ocean_coord)
+            # print("random ocean index: ", random_ocean_index)
             closest_coord_range = self.closestMainIsland(random_ocean_coord)
 
-            print("test2")
-            # One of the closest lands
-            random_land_index = random.choice(closest_coord_range)
-            random_land_coord = self.individual[random_land_index]
-
-            self.individual[random_land_index] = random_ocean_coord
-            self.individual[random_ocean_index] = random_land_coord
+            if closest_coord_range:
+                # print("closest coord range: ", closest_coord_range)
+                # One of the closest lands
+                random_land_index = random.choice(closest_coord_range)
+                # print("random land index: ", random_land_index)
+                random_land_coord = self.individual[random_land_index]
+                self.individual[random_land_index] = random_ocean_coord
+                self.individual[random_ocean_index] = random_land_coord
 
     def closestMainIsland(self, coord):
         coordX, coordY = coord
