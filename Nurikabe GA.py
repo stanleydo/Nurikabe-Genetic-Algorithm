@@ -38,6 +38,7 @@ best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4
 # \/ \/ \/ \/ \/
 # grid_size = 5
 grid_size = 7
+# grid_size = 10
 # /\ /\ /\ /\ /\
 
 list_size = grid_size * grid_size
@@ -54,8 +55,14 @@ list_size = grid_size * grid_size
 # GRID SIZE 7
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(1,2): 3, (1,4): 4, (2,1): 1, (2,5): 1, (3,3): 1, (4,1): 4, (4,5): 1, (5,2): 1, (5,4): 4}
-# center_coords = {(0,1):6, (0,3):2, (2,6):5, (3,5):6, (5,5):1}
-center_coords = {(0,0):19}
+center_coords = {(0,1):6, (0,3):2, (2,6):5, (3,5):6, (5,5):1}
+# center_coords = {(0,0):19}
+# center_coords = {(0,0):5, (0,4):1, (0,6):7, (2,0):4, (4,6):1, (6,0):5, (6,2):3, (6,6):1}
+# /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+
+# GRID SIZE 10
+# \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+# center_coords = {(9,9):1, (1,4):1, (1,6):2, (3,1): 1, (3,4):6, (4,6):1, (4,8):4, (5,1):2, (5,3):2, (6,5):2, (6,8):2, (8,3):3, (8,5):3, (9,9):2}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -378,8 +385,11 @@ class Population():
         for child in children:
             # Every child has a chance to have random coordinates swapped
             rand_chance = random.random()
+            rand_chance_2 = random.random()
             squareOcean = child.findFirstOceanSquare()
 
+            all_one_main_islands = [x for x in center_coords if center_coords[x] == 1]
+            random_single_isolate = random.choice(all_one_main_islands) if all_one_main_islands else False
 
             if rand_chance < self.mutation_rate:
                 swaps_at_a_time = random.randint(1, max_swaps)
@@ -396,16 +406,11 @@ class Population():
 
             # Fixing a random coordinate in a square ocean
             if(squareOcean != 0):
-                # print(squareOcean)
                 child.fixASquare(squareOcean)
 
-                # print("After Mutated Child: ", child.individual)
-            # This will mutate the individual into the solution
-            # Use this for testing #
-            # if rand_chance < 0.1:
-            #     print("DING DING DING!")
-            #     child.individual = best_individual
-                # print("BEST INDIVIDUAL FITNESS: ", child.calculate_fitness())
+            if random_single_isolate:
+                child.isolateSingleIsland(random_single_isolate)
+
         return children
 
     def breedPopulation(self):
@@ -499,6 +504,9 @@ class Individual():
         else:
             return oceans_fitness
 
+        if self.isOceanSquare():
+            return total_fitness - self.numOceanSquares()
+
         total_fitness += isolation_fitness
         if isolation_fitness == len(center_coords):
             pass
@@ -506,7 +514,7 @@ class Individual():
             return total_fitness
 
         if island_focus != -1:
-            total_fitness += self.connectedFitnessWeighted(island_focus)
+            total_fitness += self.connectedFitness()
         else:
             total_fitness += self.connectedFitness()
 
@@ -648,6 +656,13 @@ class Individual():
             if(set(square).issubset(self.individual[cum_sum[-1]:])):
                 return square
         return 0
+
+    def numOceanSquares(self):
+        ct = 0
+        for square in self.squares:
+            if(set(square).issubset(self.individual[cum_sum[-1]:])):
+                ct += 1
+        return ct
     
     # returns a list of adj coordinates
     # size is the length of the side of the grid eg. (5x5) = 5
@@ -900,7 +915,8 @@ class Individual():
     def isSolved(self):
         bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
         bestScore = max(bestIslandSizes)
-        if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and not self.isOceanSquare():
+        largest_fitness_possible = len(center_coords) + max_waters + (bestScore * len(center_coords))
+        if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and not self.isOceanSquare() and self.calculate_fitness() == largest_fitness_possible:
             return True
 
         # squares = [(x,y), (x,y), (x,y), (x,y)]
@@ -930,7 +946,8 @@ class Individual():
         next_index = 1
         for main_coord_index in cum_sum_butlast:
             mainX, mainY = self.individual[main_coord_index]
-            distance = math.sqrt(abs(coordX - mainX)**2 + abs(coordY - mainY)**2)
+            distance = math.sqrt(abs(coordX - mainX)**2 + abs(coordY - mainY)**2) #Euclidian
+            # distance = abs(coordX - mainX) + abs(coordY - mainY) #manhattan
             if distance < closest_distance:
                 closest_distance = distance
                 closest_coord_range = range(main_coord_index+1, cum_sum[next_index])
@@ -941,7 +958,7 @@ class Individual():
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
-        pop_size=200, mating_pool_size=150, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
+        pop_size=500, mating_pool_size=450, elite_size=10, mutation_rate=0.5, multi_objective_fitness=False)
 
 
     return 0
