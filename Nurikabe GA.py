@@ -36,6 +36,7 @@ best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4
 # CONSTANTS
 # Specify the grid size
 # \/ \/ \/ \/ \/
+# grid_size = 5
 grid_size = 7
 # /\ /\ /\ /\ /\
 
@@ -170,7 +171,11 @@ class NurikabeGA():
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
                     print("Connected Oceans: ", best_individual.findConnectedOcean())
+<<<<<<< HEAD
                     print("Number of Isolated Islands: ", best_individual.isIsolated())
+=======
+                    print("Islands Isolated: ", best_individual.isIsolated())
+>>>>>>> e241e49e975d7e54c8419ede5b64ff31065a10fc
                     best_individual.printAsMatrix()
 
                 avg_fitness = 0
@@ -683,28 +688,23 @@ class Individual():
             island = self.individual[island_start:island_end]
             other_islands = list(set(self.individual[0:cum_sum[-1]])-set(island))
 
-            # print("ISLAND: ", island)
-            # print("OTHER ISLANDS: ", other_islands)
-
             # An island will stay "Good" if it's isolated.
             good_island = True
 
-            # print("ISLAND: ", island)
             ## TODO ##
             # Extremely inefficient!! MAKE IT BETTER!
             all_adjacents = []
-            if len(island) != 1:
-                for coord in island:
-                    adjacents = adjacencies[coord]
-                    for a in adjacents:
-                        all_adjacents.append(a)
-                all_adjacents_no_dupes = list(set(all_adjacents))
-                for a in all_adjacents_no_dupes:
-                    if a in other_islands:
-                        good_island = False
-                for coord in island:
-                    if coord not in all_adjacents_no_dupes:
-                        good_island = False
+            for coord in island:
+                adjacents = adjacencies[coord]
+                for a in adjacents:
+                    all_adjacents.append(a)
+            all_adjacents_no_dupes = set(all_adjacents)
+            for coord in island:
+                if coord not in all_adjacents_no_dupes and len(island) != 1:
+                    good_island = False
+            for a in all_adjacents_no_dupes:
+                if a in other_islands:
+                    good_island = False
 
             if good_island:
                 fitness_val += 1
