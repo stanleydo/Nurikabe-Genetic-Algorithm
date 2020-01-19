@@ -166,6 +166,7 @@ class NurikabeGA():
                     break
 
                 if i % 10 == 0:
+                    print()
                     print("Average Fitness: ", avg_fitness/pop_size)
                     print("Generation ", i, ": Best Fitness = ", best_fitness)
                     print("Best Individual: ", best_individual.individual)
@@ -488,6 +489,8 @@ class Individual():
         else:
             total_fitness += self.connectedFitness()
 
+        total_fitness -= self.numOceanSquares()
+
         return total_fitness
 
     # focus_island should be an island index that we want to focus on
@@ -626,6 +629,13 @@ class Individual():
             if(set(square).issubset(self.individual[cum_sum[-1]:])):
                 return square
         return 0
+
+    def numOceanSquares(self):
+        sum = 0
+        for square in self.squares:
+            if(set(square).issubset(self.individual[cum_sum[-1]:])):
+                sum +=1
+        return sum
 
     def connectedFitness(self):
         connectedIslands = self.findConnected()
@@ -866,7 +876,7 @@ class Individual():
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
-        pop_size=250, mating_pool_size=200, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
+        pop_size=1000, mating_pool_size=750, elite_size=50, mutation_rate=0.5, multi_objective_fitness=False)
 
 
     return 0
