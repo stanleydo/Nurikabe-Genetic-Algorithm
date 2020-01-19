@@ -43,9 +43,19 @@ grid_size = 7
 list_size = grid_size * grid_size
 
 # The main island coordinates (x,y): value
+# GRID SIZE 5
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(0, 3): 5, (2, 1): 1, (2, 3): 2, (4, 1): 6}
-center_coords = {(1,2): 3, (1,4): 4, (2,1): 1, (2,5): 1, (3,3): 1, (4,1): 4, (4,5): 1, (5,2): 1, (5,4): 4}
+# center_coords = {(0,0):1, (2,0):7, (3,3):1}
+# center_coords = {(1,4):4, (3,1):1, (3,3):1}
+# center_coords = {(0,0):5, (0,2):1, (0,4):3, (4,0):1, (4,2):1, (4,4):1}
+
+# /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+# GRID SIZE 7
+# \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+# center_coords = {(1,2): 3, (1,4): 4, (2,1): 1, (2,5): 1, (3,3): 1, (4,1): 4, (4,5): 1, (5,2): 1, (5,4): 4}
+# center_coords = {(0,1):6, (0,3):2, (2,6):5, (3,5):6, (5,5):1}
+center_coords = {(0,0):19}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -124,7 +134,18 @@ class NurikabeGA():
                             best_generation = i
                     pop.breedPopulation()
 
+                if best_individual.isSolved():
+                    print()
+                    print("Nurikabe Solved in", time.time() - startTime, "seconds!")
+                    print("Generation ", i, ": Best Fitness = ", best_fitness)
+                    print("Best Individual: ", best_individual.individual)
+                    print("Connected Islands: ", best_individual.findConnected())
+                    print("Connected Oceans: ", best_individual.findConnectedOcean())
+                    best_individual.printAsMatrix()
+                    break
+
                 if i % 10 == 0:
+                    print()
                     print("Generation ", i, ": Best Fitness = ", best_fitness)
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
@@ -171,7 +192,8 @@ class NurikabeGA():
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
                     print("Connected Oceans: ", best_individual.findConnectedOcean())
-                    print("Islands Isolated: ", best_individual.isIsolated())
+                    print("# Islands Isolated: ", best_individual.isIsolated())
+                    print("Islands Not Isolated: ", best_individual.islandsNotIsolated())
                     best_individual.printAsMatrix()
 
                 avg_fitness = 0
@@ -750,13 +772,13 @@ class Individual():
 
     # Returns a list with each index corresponding to an island.
     # [-1, 1, -1] means the first island is not isolated, while the second one is. Third island is not isolated.
-    def islandsIsolated(self):
-        # The island's adjacencies should only be within itself or within an ocean.
+    def islandsNotIsolated(self):
+        # The island's adjacencies should only contain itself or an ocean.
         # Keeps track of iterations
         isl = 0
 
         # Incorporated a fitness value
-        fitness_val = []
+        isolated_islands = []
 
         # For each coordinate in an island, the coordinate's adjacent position must be within itself or the ocean.
         for island_start in cum_sum_butlast:
@@ -764,26 +786,34 @@ class Individual():
 
             # island is a list or splice of coordinates corresponding to an island
             island = self.individual[island_start:island_end]
+            other_islands = list(set(self.individual[0:cum_sum[-1]])-set(island))
 
             # An island will stay "Good" if it's isolated.
             good_island = True
 
+            ## TODO ##
+            # Extremely inefficient!! MAKE IT BETTER!
+            all_adjacents = []
             for coord in island:
                 adjacents = adjacencies[coord]
                 for a in adjacents:
-                    # Ocean is just a list/splice of the ocean. It's in the init of the individual.
-                    if a not in self.individual[self.ocean_start_index:len(self.individual)] or a not in island:
-                        good_island = False
+                    all_adjacents.append(a)
+            all_adjacents_no_dupes = set(all_adjacents)
+            for coord in island:
+                if coord not in all_adjacents_no_dupes and len(island) != 1:
+                    good_island = False
+            for a in all_adjacents_no_dupes:
+                if a in other_islands:
+                    good_island = False
 
-            #
-            if not good_island:
-                fitness_val.append(-1)
+            if good_island:
+                pass
             else:
-                fitness_val.append(1)
+                isolated_islands.append(island)
 
             isl += 1
 
-        return fitness_val
+        return isolated_islands
 
     # Returns a random island range
     # Also does oceans now
@@ -860,8 +890,7 @@ class Individual():
     def isSolved(self):
         bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
         bestScore = max(bestIslandSizes)
-        largest_fitness_possible = len(center_coords) + max_waters + (bestScore * len(center_coords))
-        if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and self.calculate_fitness() == largest_fitness_possible:
+        if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and not self.isOceanSquare():
             return True
 
         # squares = [(x,y), (x,y), (x,y), (x,y)]
@@ -902,7 +931,12 @@ class Individual():
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
+<<<<<<< HEAD
         pop_size=250, mating_pool_size=200, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
+=======
+        pop_size=200, mating_pool_size=150, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
+
+>>>>>>> 883c0b421c6fa5cd459d3e57a9ded3babf01e221
 
     return 0
 
