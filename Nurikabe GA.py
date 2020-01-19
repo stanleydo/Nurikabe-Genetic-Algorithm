@@ -43,9 +43,19 @@ grid_size = 7
 list_size = grid_size * grid_size
 
 # The main island coordinates (x,y): value
+# GRID SIZE 5
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(0, 3): 5, (2, 1): 1, (2, 3): 2, (4, 1): 6}
-center_coords = {(1,2): 3, (1,4): 4, (2,1): 1, (2,5): 1, (3,3): 1, (4,1): 4, (4,5): 1, (5,2): 1, (5,4): 4}
+# center_coords = {(0,0):1, (2,0):7, (3,3):1}
+# center_coords = {(1,4):4, (3,1):1, (3,3):1}
+# center_coords = {(0,0):5, (0,2):1, (0,4):3, (4,0):1, (4,2):1, (4,4):1}
+
+# /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+# GRID SIZE 7
+# \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+# center_coords = {(1,2): 3, (1,4): 4, (2,1): 1, (2,5): 1, (3,3): 1, (4,1): 4, (4,5): 1, (5,2): 1, (5,4): 4}
+# center_coords = {(0,1):6, (0,3):2, (2,6):5, (3,5):6, (5,5):1}
+center_coords = {(0,0):19}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -124,7 +134,18 @@ class NurikabeGA():
                             best_generation = i
                     pop.breedPopulation()
 
+                if best_individual.isSolved():
+                    print()
+                    print("Nurikabe Solved in", time.time() - startTime, "seconds!")
+                    print("Generation ", i, ": Best Fitness = ", best_fitness)
+                    print("Best Individual: ", best_individual.individual)
+                    print("Connected Islands: ", best_individual.findConnected())
+                    print("Connected Oceans: ", best_individual.findConnectedOcean())
+                    best_individual.printAsMatrix()
+                    break
+
                 if i % 10 == 0:
+                    print()
                     print("Generation ", i, ": Best Fitness = ", best_fitness)
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
@@ -843,8 +864,7 @@ class Individual():
     def isSolved(self):
         bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
         bestScore = max(bestIslandSizes)
-        largest_fitness_possible = len(center_coords) + max_waters + (bestScore * len(center_coords))
-        if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and self.calculate_fitness() == largest_fitness_possible:
+        if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and not self.isOceanSquare():
             return True
 
         # squares = [(x,y), (x,y), (x,y), (x,y)]
@@ -885,7 +905,7 @@ class Individual():
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
-        pop_size=1000, mating_pool_size=750, elite_size=50, mutation_rate=0.5, multi_objective_fitness=False)
+        pop_size=200, mating_pool_size=150, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
 
 
     return 0
