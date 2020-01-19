@@ -615,10 +615,6 @@ class Individual():
                 return square
         return 0
 
-    def findsubsets(self,S,m):
-        return set(itertools.combinations(S, m))
-    
-
     def connectedFitness(self):
         connectedIslands = self.findConnected()
         # give a big fitness bonus if the size of the island is the correct size
