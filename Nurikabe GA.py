@@ -42,7 +42,7 @@ list_size = grid_size * grid_size
 # The main island coordinates (x,y): value
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(0, 3): 5, (2, 1): 1, (2, 3): 2, (4, 1): 6}
-center_coords = {(2,1): 3, (4,1): 4, (1,2): 1, (5,2): 1, (3,3): 1, (1,4): 4, (5,4): 1, (2,5): 1, (4,5): 4}
+center_coords = {(1,2): 3, (1,4): 4, (2,1): 1, (2,5): 1, (3,3): 1, (4,1): 4, (4,5): 1, (5,5): 1, (5,4): 4}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -168,6 +168,7 @@ class NurikabeGA():
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
                     print("Connected Oceans: ", best_individual.findConnectedOcean())
+                    print("Number Of Islands Isolated: ", best_individual.isIsolated())
                     best_individual.printAsMatrix()
 
                 avg_fitness = 0
