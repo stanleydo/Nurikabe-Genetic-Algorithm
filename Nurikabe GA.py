@@ -8,6 +8,7 @@ import random
 from operator import itemgetter
 import time
 from numpy.random import choice
+import itertools
 
 # SAMPLE
 # 0 0 0 5 0
@@ -33,7 +34,7 @@ best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4
 # CONSTANTS
 # Specify the grid size
 # \/ \/ \/ \/ \/
-grid_size = 5
+grid_size = 7
 # /\ /\ /\ /\ /\
 
 list_size = grid_size * grid_size
@@ -41,7 +42,7 @@ list_size = grid_size * grid_size
 # The main island coordinates (x,y): value
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(0, 3): 5, (2, 1): 1, (2, 3): 2, (4, 1): 6}
-center_coords = {(0,1): 4, (0,3): 1, (2,4): 3, (4,1): 1, (4,3): 2}
+center_coords = {(2,1): 3, (4,1): 4, (1,2): 1, (5,2): 1, (3,3): 1, (1,4): 4, (5,4): 1, (2,5): 1, (4,5): 4}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -608,6 +609,16 @@ class Individual():
                 return True
         return False
     
+    def findFirstOceanSquare(self):
+        for square in self.squares:
+            if(set(square).issubset(self.individual[cum_sum[-1]:])):
+                return square
+        return 0
+
+    def findsubsets(self,S,m):
+        return set(itertools.combinations(S, m))
+    
+
     def connectedFitness(self):
         connectedIslands = self.findConnected()
         # give a big fitness bonus if the size of the island is the correct size
@@ -819,6 +830,7 @@ def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
         pop_size=250, mating_pool_size=200, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
+
 
     return 0
 
