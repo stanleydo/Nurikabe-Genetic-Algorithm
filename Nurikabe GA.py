@@ -8,6 +8,7 @@ import random
 from operator import itemgetter
 import time
 from numpy.random import choice
+import itertools
 import math
 import sys
 
@@ -35,7 +36,6 @@ best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4
 # CONSTANTS
 # Specify the grid size
 # \/ \/ \/ \/ \/
-# grid_size = 5
 grid_size = 7
 # /\ /\ /\ /\ /\
 
@@ -44,12 +44,7 @@ list_size = grid_size * grid_size
 # The main island coordinates (x,y): value
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(0, 3): 5, (2, 1): 1, (2, 3): 2, (4, 1): 6}
-# center_coords = {(0,1): 4, (0,3): 1, (2,4): 3, (4,1): 1, (4,3): 2}
-# /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
-
-# GRID SIZE 7 CENTER_COORDS
-# \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-center_coords = {(1,2): 2, (2,5):8, (3,6):1, (4,5):3, (5,2):2}
+center_coords = {(2,1): 3, (4,1): 4, (1,2): 1, (5,2): 1, (3,3): 1, (1,4): 4, (5,4): 1, (2,5): 1, (4,5): 4}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -106,13 +101,13 @@ class NurikabeGA():
 
         self.generations = generations
 
-    def geneticAlgorithm(self, pop_size, mating_pool_size, elite_size, mutation_rate, propogation_mutation_rate, multi_objective_fitness=False):
+    def geneticAlgorithm(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False):
         startTime = time.time()
 
         if multi_objective_fitness:
             populations = []
             for island in range(len(cum_sum_butlast)):
-                populations.append(Population(pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate, multi_objective_fitness=multi_objective_fitness, island_number=island, propogation_mutation_rate=propogation_mutation_rate))
+                populations.append(Population(pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate, multi_objective_fitness=multi_objective_fitness, island_number=island))
 
             best_individual = Individual()
             best_fitness = 0
@@ -127,20 +122,8 @@ class NurikabeGA():
                             best_fitness = fitness
                             best_generation = i
                     pop.breedPopulation()
-                
-            
-                if best_individual.isSolved():
-                    print()
-                    print("Nurikabe Solved in", time.time() - startTime, "seconds!")
-                    print("Generation ", i, ": Best Fitness = ", best_fitness)
-                    print("Best Individual: ", best_individual.individual)
-                    print("Connected Islands: ", best_individual.findConnected())
-                    print("Connected Oceans: ", best_individual.findConnectedOcean())
-                    best_individual.printAsMatrix()
-                    break
 
                 if i % 10 == 0:
-                    print()
                     print("Generation ", i, ": Best Fitness = ", best_fitness)
                     print("Best Individual: ", best_individual.individual)
                     print("Connected Islands: ", best_individual.findConnected())
@@ -151,7 +134,7 @@ class NurikabeGA():
 
         else:
             population = Population(
-                pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate, propogation_mutation_rate=propogation_mutation_rate)
+                pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate)
 
             best_individual = Individual()
             best_fitness = 0
@@ -182,7 +165,6 @@ class NurikabeGA():
                     break
 
                 if i % 10 == 0:
-                    print()
                     print("Average Fitness: ", avg_fitness/pop_size)
                     print("Generation ", i, ": Best Fitness = ", best_fitness)
                     print("Best Individual: ", best_individual.individual)
@@ -213,7 +195,7 @@ class NurikabeGA():
 
 class Population():
 
-    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, propogation_mutation_rate, multi_objective_fitness=False, island_number=-1):
+    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False, island_number=-1):
 
         self.population = []
 
@@ -223,7 +205,6 @@ class Population():
         self.mutation_rate = mutation_rate
         self.multi_objective_fitness = multi_objective_fitness
         self.island_number = island_number
-        self.propogation_mutation_rate = propogation_mutation_rate
 
         for _ in range(pop_size):
             self.population.append(Individual(multi_objective_fitness))
@@ -250,7 +231,6 @@ class Population():
 
     # Using tournament selection, a random sample of elite size is taken
     # The elites are sorted by their fitness
-    # Unused at the moment
     def breed(self, mating_pool):
         children = []
         elites = []
@@ -330,10 +310,18 @@ class Population():
                     p2_random.individual[p1_island_range[0]:list_size])
                 avoid_range = range(p1_island_range[0], list_size)
 
+            # DEBUGGING
+            # print("P1: ", p1_random.individual)
+            # print("P2: ", p2_random.individual)
+
             # Maintain p1_toSet but as a list, so we can use it for easy comparison
             p1_toList = list(p1_toSet)
             # Subtracting the p1 set from the p2 set and making sure we don't lose any coordinates
             remainders = list(p2_toSet - p1_toSet)
+
+            # DEBUGGING
+            # print("p1_toList: ", p1_toList)
+            # print("Remainders: ", remainders)
 
             child = Individual()
             child.individual = p2_random.individual.copy()
@@ -346,6 +334,11 @@ class Population():
                 else:
                     if child.individual[i] in p1_toList:
                         child.individual[i] = remainders.pop()
+
+            # Debugging
+            # print("Parent 1 : ", p1_random.individual)
+            # print("Parent 2 : ", p2_random.individual)
+            # print("Child    : ", child.individual)
 
             children.append(child)
 
@@ -361,8 +354,6 @@ class Population():
         for child in children:
             # Every child has a chance to have random coordinates swapped
             rand_chance = random.random()
-            # There is another chance here for TEMP purposes # Doesn't do anything right now
-            second_chance = random.random()
 
             if rand_chance < self.mutation_rate:
                 swaps_at_a_time = random.randint(1, max_swaps)
@@ -486,11 +477,6 @@ class Individual():
             total_fitness += self.connectedFitnessWeighted(island_focus)
         else:
             total_fitness += self.connectedFitness()
-
-        # if self.isOceanSquare():
-        #     return total_fitness - self.oceanSquareCount()
-        # else:
-        #     pass
 
         return total_fitness
 
@@ -625,13 +611,12 @@ class Individual():
                 return True
         return False
     
-    def oceanSquareCount(self):
-        count = 0
+    def findFirstOceanSquare(self):
         for square in self.squares:
-            if(set(square)).issubset(self.individual[cum_sum[-1]:]):
-                count += 1
-        return count
-    
+            if(set(square).issubset(self.individual[cum_sum[-1]:])):
+                return square
+        return 0
+
     def connectedFitness(self):
         connectedIslands = self.findConnected()
         # give a big fitness bonus if the size of the island is the correct size
@@ -671,10 +656,9 @@ class Individual():
     def connectedFitnessWeighted(self, island_number):
         connectedIsland = self.findConnected()[island_number]
         bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
-        bestScore = max(bestIslandSizes)
         bestIslandSize = bestIslandSizes[island_number]
-        islandFitness = bestScore if len(connectedIsland) == bestIslandSize else len(connectedIsland) if len(connectedIsland) < bestIslandSize else len(connectedIsland) + (bestIslandSize - len(connectedIsland))
-        return islandFitness * len(center_coords)
+        islandFitness = bestIslandSize if len(connectedIsland) == bestIslandSize else len(connectedIsland) if len(connectedIsland) < bestIslandSize else len(connectedIsland) + (bestIslandSize - len(connectedIsland))
+        return islandFitness - 1
 
     # This is the main isIsolated function that is currently in use.
     def isIsolated(self):
@@ -692,6 +676,9 @@ class Individual():
             # island is a list or splice of coordinates corresponding to an island
             island = self.individual[island_start:island_end]
             other_islands = list(set(self.individual[0:cum_sum[-1]])-set(island))
+
+            # print("ISLAND: ", island)
+            # print("OTHER ISLANDS: ", other_islands)
 
             # An island will stay "Good" if it's isolated.
             good_island = True
@@ -747,6 +734,7 @@ class Individual():
                     if a not in self.individual[self.ocean_start_index:len(self.individual)] or a not in island:
                         good_island = False
 
+            #
             if not good_island:
                 fitness_val.append(-1)
             else:
@@ -832,10 +820,10 @@ class Individual():
         bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
         bestScore = max(bestIslandSizes)
         largest_fitness_possible = len(center_coords) + max_waters + (bestScore * len(center_coords))
-        if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and self.calculate_fitness() == largest_fitness_possible and not self.isOceanSquare():
+        if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and self.calculate_fitness() == largest_fitness_possible:
             return True
 
-    # squares = [[(x,y), (x,y), (x,y), (x,y)],[(x,y), (x,y), (x,y), (x,y)]]
+        # squares = [[(x,y), (x,y), (x,y), (x,y)],[(x,y), (x,y), (x,y), (x,y)]]
     def fixASquare(self, squares):
         # Ocean
         random_ocean_coord = random.choice(squares)
@@ -868,7 +856,8 @@ class Individual():
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
-        pop_size=500, mating_pool_size=250, elite_size=10, mutation_rate=0.5, multi_objective_fitness=False, propogation_mutation_rate=0.5)
+        pop_size=250, mating_pool_size=200, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
+
 
     return 0
 
