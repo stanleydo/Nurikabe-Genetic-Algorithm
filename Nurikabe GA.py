@@ -684,6 +684,16 @@ class Individual():
             self.individual[self.individual.index(island)] = self.individual[randomOceanIndex]
             self.individual[randomOceanIndex] = tempIsland
 
+    # Checks to see if coordinate 1 is in range of coordinate 2, based on center
+    # value length 
+    def inRange(self, centerValue, coord1, coord2):
+        x1, y1 = coord1
+        x2, y2 = coord2
+        distance = abs(x2-x1) + abs(y2-y1)
+        if (centerValue <= distance):
+            return True
+        return False
+
 
     def connectedFitness(self):
         connectedIslands = self.findConnected()
@@ -931,12 +941,8 @@ class Individual():
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=5000)
     nurikabe.geneticAlgorithm(
-<<<<<<< HEAD
-        pop_size=250, mating_pool_size=200, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
-=======
         pop_size=200, mating_pool_size=150, elite_size=5, mutation_rate=0.5, multi_objective_fitness=False)
 
->>>>>>> 883c0b421c6fa5cd459d3e57a9ded3babf01e221
 
     return 0
 
