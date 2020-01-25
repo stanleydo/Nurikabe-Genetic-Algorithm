@@ -36,8 +36,8 @@ best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4
 # CONSTANTS
 # Specify the grid size
 # \/ \/ \/ \/ \/
-# grid_size = 5
-grid_size = 6
+grid_size = 5
+# grid_size = 6
 # grid_size = 7
 # grid_size = 10
 # /\ /\ /\ /\ /\
@@ -47,7 +47,8 @@ list_size = grid_size * grid_size
 # The main island coordinates (x,y): value
 # GRID SIZE 5
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-# center_coords = {(0, 3): 5, (2, 1): 1, (2, 3): 2, (4, 1): 6}
+center_coords = {(0, 3): 5, (2, 1): 1, (2, 3): 2, (4, 1): 6}
+# center_coords = {(0,2):2, (1,0):3, (3,4):2, (4,2):3}
 # center_coords = {(0,0):1, (2,0):7, (3,3):1}
 # center_coords = {(1,4):4, (3,1):1, (3,3):1}
 # center_coords = {(0,0):5, (0,2):1, (0,4):3, (4,0):1, (4,2):1, (4,4):1}
@@ -55,7 +56,7 @@ list_size = grid_size * grid_size
 
 # GRID SIZE 6
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-center_coords = {(1,1):1, (2,0):5, (2,2):3, (4,2):2, (4,5):6}
+# center_coords = {(1,1):1, (2,0):5, (2,2):3, (4,2):2, (4,5):6}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 # GRID SIZE 7
@@ -108,6 +109,9 @@ for coord in all_coords:
     adjacents += [(x-1, y)] if x-1 >= 0 else []
     adjacents += [(x, y-1)] if y-1 >= 0 else []
     adjacencies[coord] = adjacents
+
+# Generate all possible island configurations for each island
+
 
 # TODOS .... Need to add multiple Populations and find a way to do multi-objective fitness.
 class NurikabeGA():
@@ -210,6 +214,9 @@ class NurikabeGA():
                     print("Connected Oceans: ", best_individual.findConnectedOcean())
                     print("# Islands Isolated: ", best_individual.isIsolated())
                     print("Islands Not Isolated: ", best_individual.islandsNotIsolated())
+                    # print("ALL: ", best_individual.all_possible_islands((0,3),5))
+                    for coordinate in center_coords_keys:
+                        print(coordinate, center_coords[coordinate], ": ", best_individual.all_possible_islands(coordinate,center_coords[coordinate]))
                     best_individual.fixRange()
                     best_individual.printAsMatrix()
 
@@ -1023,6 +1030,58 @@ class Individual():
                                     
                         self.individual[rand_ocean_index] = coord
                         self.individual[coord_index] = random_ocean
+    
+    # BFS Approach to finding all possible islands given a coord
+    def all_possible_islands(self, coord, value):
+        if value == 1:
+            return [set(coord)]
+        
+        all_coords_in_range = [(x,y) for x in range(grid_size) for y in range(grid_size) if self.inRange(value, coord, (x,y)) and (x,y) != coord]
+
+        exhausted = False
+        start = 0
+        stop = start+value
+
+        possible_islands = []
+
+        while not exhausted:
+            retain_coords = all_coords_in_range[start+1:stop-1]
+            retain_coords.append(coord)
+            for moving_coord in all_coords_in_range:
+                if moving_coord not in retain_coords:
+                    island = retain_coords.copy()
+                    island.insert(0,moving_coord)
+                    if self.islandWorks(island, value) and set(island) not in possible_islands:
+                        possible_islands.append(set(island))
+                        # possible_islands_tolist.append(island.copy())
+            start += 1
+
+            if start == len(all_coords_in_range):
+                exhausted = True
+            # print(possible_islands)
+
+        return possible_islands
+
+    def islandWorks(self, island, value):
+        island_copy = island.copy()
+        connectedIsland = []
+        coordsAdjinclCenter = []
+        searching = True
+
+        coordsAdjinclCenter.append(island_copy.pop(0))
+        while(searching):
+            adjCoord = self.coordAdjbetweenTwoLists(island_copy, coordsAdjinclCenter)
+            if (adjCoord != 0):
+                coordsAdjinclCenter.append(island_copy.pop(island_copy.index(adjCoord)))
+            else:
+                searching = False
+            
+            connectedIsland = coordsAdjinclCenter
+
+        return True if len(connectedIsland) == value else False
+            
+            
+
 
 
 
