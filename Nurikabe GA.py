@@ -39,8 +39,9 @@ best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4
 # \/ \/ \/ \/ \/
 # grid_size = 5
 # grid_size = 6
-grid_size = 7
-# grid_size = 10
+# grid_size = 7
+# grid_size = 8
+grid_size = 10
 # /\ /\ /\ /\ /\
 
 list_size = grid_size * grid_size
@@ -64,13 +65,19 @@ list_size = grid_size * grid_size
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(1,2): 3, (1,4): 4, (2,1): 1, (2,5): 1, (3,3): 1, (4,1): 4, (4,5): 1, (5,2): 1, (5,4): 4}
 # center_coords = {(0,1):6, (0,3):2, (2,6):5, (3,5):6, (5,5):1}
-center_coords = {(0,0):19}
-# center_coords = {(0,0):5, (0,4):1, (0,6):7, (2,0):4, (4,6):1, (6,0):5, (6,2):3, (6,6):1}
+# center_coords = {(0,0):19}
+# center_coords = {(0,0):1, (0,4):1, (0,6):7, (2,0):4, (4,6):1, (6,0):5, (6,2):3, (6,6):1}
+# /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+
+# GRID SIZE 8
+# \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+# center_coords = {(0,2):2, (0,6):3, (1,1):1, (2,3):1, (2,7):1, (3,1):2, (4,3):3, (5,4):4, (6,0):2, (6,7):3, (7,5):4}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 # GRID SIZE 10
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-# center_coords = {(9,9):1, (1,4):1, (1,6):2, (3,1): 1, (3,4):6, (4,6):1, (4,8):4, (5,1):2, (5,3):2, (6,5):2, (6,8):2, (8,3):3, (8,5):3, (9,9):2}
+center_coords = {(9,9):1, (1,4):1, (1,6):2, (3,1): 1, (3,4):6, (4,6):1, (4,8):4, (5,1):2, (5,3):2, (6,5):2, (6,8):2, (8,3):3, (8,5):3, (9,9):2}
+# center_coords = {(0,9):4, (1,0):6, (2,6):1, (3,9):10, (3,7):6, (3,5):5, (5,0):1, (5,3):2, (6,1):5, (6,5):2, (8,4):2}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -126,12 +133,13 @@ all_combinations = dict()
 for coord in center_coords:
     all_coords_in_range = [(x,y) for x in range(grid_size) for y in range(grid_size) if inRange(center_coords[coord], coord, (x,y)) and (x,y) != coord and (x,y) not in definitely_avoid[coord]]
     combinations = itertools.combinations(all_coords_in_range, center_coords[coord]-1)
-    combinations_aslist = list(combinations)
+    print("ALL CORODS IN RANGE: ", len(all_coords_in_range))
+    # combinations_aslist = (tuple(c) for c in combinations)
     # print("LEN: ", len(combinations_aslist))
 
     possible_islands = []
 
-    for island in combinations_aslist:
+    for island in list(combinations):
         isl_with_main = list(island)
         isl_with_main.insert(0, coord)
         if islandWorks(isl_with_main, center_coords[coord]):
