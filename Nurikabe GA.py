@@ -37,11 +37,11 @@ best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4
 # CONSTANTS
 # Specify the grid size
 # \/ \/ \/ \/ \/
-# grid_size = 5
+grid_size = 5
 # grid_size = 6
 # grid_size = 7
 # grid_size = 8
-grid_size = 10
+# grid_size = 10
 # /\ /\ /\ /\ /\
 
 list_size = grid_size * grid_size
@@ -53,7 +53,7 @@ list_size = grid_size * grid_size
 # center_coords = {(0,2):2, (1,0):3, (3,4):2, (4,2):3}
 # center_coords = {(0,0):1, (2,0):7, (3,3):1}
 # center_coords = {(1,4):4, (3,1):1, (3,3):1}
-# center_coords = {(0,0):5, (0,2):1, (0,4):3, (4,0):1, (4,2):1, (4,4):1}
+center_coords = {(0,0):5, (0,2):1, (0,4):3, (4,0):1, (4,2):1, (4,4):1}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 # GRID SIZE 6
@@ -76,7 +76,7 @@ list_size = grid_size * grid_size
 
 # GRID SIZE 10
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-center_coords = {(9,9):1, (1,4):1, (1,6):2, (3,1): 1, (3,4):6, (4,6):1, (4,8):4, (5,1):2, (5,3):2, (6,5):2, (6,8):2, (8,3):3, (8,5):3, (9,9):2}
+# center_coords = {(9,9):1, (1,4):1, (1,6):2, (3,1): 1, (3,4):6, (4,6):1, (4,8):4, (5,1):2, (5,3):2, (6,5):2, (6,8):2, (8,3):3, (8,5):3, (9,9):2}
 # center_coords = {(0,9):4, (1,0):6, (2,6):1, (3,9):10, (3,7):6, (3,5):5, (5,0):1, (5,3):2, (6,1):5, (6,5):2, (8,4):2}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
@@ -133,7 +133,7 @@ all_combinations = dict()
 for coord in center_coords:
     all_coords_in_range = [(x,y) for x in range(grid_size) for y in range(grid_size) if inRange(center_coords[coord], coord, (x,y)) and (x,y) != coord and (x,y) not in definitely_avoid[coord]]
     combinations = itertools.combinations(all_coords_in_range, center_coords[coord]-1)
-    print("ALL CORODS IN RANGE: ", len(all_coords_in_range))
+    # print("ALL CORODS IN RANGE: ", len(all_coords_in_range))
     # combinations_aslist = (tuple(c) for c in combinations)
     # print("LEN: ", len(combinations_aslist))
 
@@ -558,7 +558,7 @@ class Individual():
         while len(self.individual) != list_size:
             self.individual = []
             for coord in center_coords:
-                self.individual = self.individual + random.choice(all_combinations[coord])
+                    self.individual = self.individual + random.choice(all_combinations[coord])
 
             for coord in all_coords:
                 if coord not in self.individual:
