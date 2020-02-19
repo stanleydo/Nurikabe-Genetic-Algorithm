@@ -12,8 +12,10 @@ import itertools
 import math
 import sys
 from utility import *
+import PySimpleGUI as sg
+from random import randint
 
-# SAMPLE
+    # SAMPLE
 # 0 0 0 5 0
 # 0 0 0 0 0
 # 0 1 0 2 0
@@ -37,14 +39,24 @@ best_individual =[(0,3),(0,0),(0,1),(0,2),(0,4),(2,1),(2,3),(2,4),(4,1),(3,0),(4
 # CONSTANTS
 # Specify the grid size
 # \/ \/ \/ \/ \/
-grid_size = 5
+# grid_size = 5
 # grid_size = 6
 # grid_size = 7
 # grid_size = 8
-# grid_size = 10
+grid_size = 10
 # /\ /\ /\ /\ /\
 
 list_size = grid_size * grid_size
+
+MAX_ROWS = MAX_COL = grid_size
+# board = [[randint(0,1) for j in range(MAX_COL)] for i in range(MAX_ROWS)]
+
+layout =  [[sg.Text('', size=(4, 2), key=str((i,j)), pad=(1,1), text_color='blue', background_color='white', justification='center') for j in range(MAX_COL)] for i in range(MAX_ROWS)] +\
+          [[sg.Button('Exit', key='Exit')]] +\
+          [[sg.Button('Run', key='Run')]] +\
+          [[sg.Text('Generation: '), sg.Text('0', key='Generation')]]
+
+window = sg.Window('Nurikabe Genetic Algorithm', layout).Finalize()
 
 # The main island coordinates (x,y): value
 # GRID SIZE 5
@@ -53,7 +65,7 @@ list_size = grid_size * grid_size
 # center_coords = {(0,2):2, (1,0):3, (3,4):2, (4,2):3}
 # center_coords = {(0,0):1, (2,0):7, (3,3):1}
 # center_coords = {(1,4):4, (3,1):1, (3,3):1}
-center_coords = {(0,0):5, (0,2):1, (0,4):3, (4,0):1, (4,2):1, (4,4):1}
+# center_coords = {(0,0):5, (0,2):1, (0,4):3, (4,0):1, (4,2):1, (4,4):1}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 # GRID SIZE 6
@@ -77,7 +89,8 @@ center_coords = {(0,0):5, (0,2):1, (0,4):3, (4,0):1, (4,2):1, (4,4):1}
 # GRID SIZE 10
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(9,9):1, (1,4):1, (1,6):2, (3,1): 1, (3,4):6, (4,6):1, (4,8):4, (5,1):2, (5,3):2, (6,5):2, (6,8):2, (8,3):3, (8,5):3, (9,9):2}
-# center_coords = {(0,9):4, (1,0):6, (2,6):1, (3,9):10, (3,7):6, (3,5):5, (5,0):1, (5,3):2, (6,1):5, (6,5):2, (8,4):2}
+center_coords = {(0,9):4, (1,0):6, (2,6):1, (3,9):10, (3,7):6, (3,5):5, (5,0):1, (5,3):2, (6,1):5, (6,5):2, (8,4):2}
+# center_coords = {(0, 2): 2, (0, 5): 1, (0, 9): 1, (1, 1): 2, (1,7):1, (2, 3):7, (3, 6): 2, (6, 6): 2, (7, 3): 5, (7,8): 6, (8,1): 5, (8,7): 1, (9, 2): 2, (9, 5): 1, (9,9):1 }
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 center_coords_keys = list(center_coords.keys())
@@ -108,46 +121,40 @@ all_coords = [(x, y) for y in range(grid_size) for x in range(grid_size)]
 valid_coords = [x for x in all_coords if x not in center_coords]
 
 # Dictionary which contains all of the valid edges for the corresponding coordinate
-adjacencies = dict()
-for coord in all_coords:
-    adjacents = []
-    x, y = coord
-    adjacents += [(x+1, y)] if x+1 < grid_size else []
-    adjacents += [(x, y+1)] if y+1 < grid_size else []
-    adjacents += [(x-1, y)] if x-1 >= 0 else []
-    adjacents += [(x, y-1)] if y-1 >= 0 else []
-    adjacencies[coord] = adjacents
+adjacencies = generateAdjacencies(all_coords, grid_size)
 
 # Create a list of coordinates to definitely avoid
 # This means anything adjacent to any other main island, or the main islands themselves.
-definitely_avoid = dict()
-for coord in center_coords_keys:
-    avoid_all = [x for x in center_coords_keys if x != coord]
-    bad_adjacents = [j for i in [adjacencies[x] for x in avoid_all] for j in i]
-    avoid_all = avoid_all + bad_adjacents
-    definitely_avoid[coord] = avoid_all
-
+definitely_avoid = avoidCoordinates(center_coords_keys, adjacencies)
 
 all_combinations = dict()
 
 for coord in center_coords:
-    all_coords_in_range = [(x,y) for x in range(grid_size) for y in range(grid_size) if inRange(center_coords[coord], coord, (x,y)) and (x,y) != coord and (x,y) not in definitely_avoid[coord]]
-    combinations = itertools.combinations(all_coords_in_range, center_coords[coord]-1)
+    all_coords_in_range = [a for a in all_coords if inRange(center_coords[coord], coord, a) and a not in definitely_avoid[coord]]
+    # combinations = itertools.combinations(all_coords_in_range, center_coords[coord]-1)
     # print("ALL CORODS IN RANGE: ", len(all_coords_in_range))
     # combinations_aslist = (tuple(c) for c in combinations)
     # print("LEN: ", len(combinations_aslist))
 
     possible_islands = []
+    # findAllConnected(adjacencies, coord, center_coords[coord], all_coords_in_range)
 
-    for island in list(combinations):
-        isl_with_main = list(island)
-        isl_with_main.insert(0, coord)
-        if islandWorks(isl_with_main, center_coords[coord]):
-            possible_islands.append(isl_with_main)
-        else:
-            pass
+    # for island in list(combinations):
+    #     isl_with_main = list(island)
+    #     isl_with_main.insert(0, coord)
+    #     if islandWorks(isl_with_main, center_coords[coord]):
+    #         possible_islands.append(isl_with_main)
+    #     else:
+    #         pass
     
-    all_combinations[coord] = possible_islands
+    all_combinations[coord] = findAllConnected(adjacencies, coord, center_coords[coord], all_coords_in_range)
+    print("COORD: ", coord, "[", center_coords[coord], "]", " IN RANGE: ", all_coords_in_range)
+    print("COORD: ", coord, ".. ALL COMBINATIONS: ", all_combinations[coord])
+
+# all_coords_in_range1 = [(x,y) for x in range(grid_size) for y in range(grid_size) if inRange(center_coords[(0,0)], (0,0), (x,y)) and (x,y) != (0,0) and (x,y) not in definitely_avoid[(0,0)]]
+# print("Actual All Combos: ", all_combinations[(0,0)])
+# print("BFS All Combos: ", findAllConnected(adjacencies, (0,0), center_coords[(0,0)],  all_coords_in_range1))
+
     
 
 # TODOS .... Need to add multiple Populations and find a way to do multi-objective fitness.
@@ -208,6 +215,7 @@ class NurikabeGA():
                     print("Connected Oceans: ", best_individual.findConnectedOcean())
                     best_individual.printAsMatrix()
 
+
                 self.breedPopulations(populations)
 
         else:
@@ -219,44 +227,60 @@ class NurikabeGA():
             best_generation = 0
             avg_fitness = 0
 
-            for i in range(0, self.generations):
-                for ind in population.population:
-                    # print("IND DIFF: ")
-                    # ind.printAsMatrix()
-                    # print()
-                    # print("Individual: ", ind.individual)
-                    fitness = ind.calculate_fitness()
-                    avg_fitness += fitness
-                    if fitness > best_fitness:
-                        best_individual.individual = ind.individual.copy()
-                        best_fitness = fitness
-                        best_generation = i
-
-                if best_individual.isSolved():
-                    print()
-                    print("Nurikabe Solved in", time.time() - startTime, "seconds!")
-                    print("Generation ", i, ": Best Fitness = ", best_fitness)
-                    print("Best Individual: ", best_individual.individual)
-                    print("Connected Islands: ", best_individual.findConnected())
-                    print("Connected Oceans: ", best_individual.findConnectedOcean())
-                    best_individual.printAsMatrix()
+            while True:
+                (event, value) = window.Read()
+                if event == 'Exit':
                     break
+                elif event == 'Run':
+                    for i in range(0, self.generations):
+                        print('here')
+                        for ind in population.population:
+                            fitness = ind.calculate_fitness()
+                            avg_fitness += fitness
+                            if fitness > best_fitness:
+                                best_individual.individual = ind.individual.copy()
+                                best_fitness = fitness
+                                best_generation = i
 
-                if i % self.print_interval == 0:
-                    print()
-                    print("Average Fitness: ", avg_fitness/pop_size)
-                    print("Generation ", i, ": Best Fitness = ", best_fitness)
-                    print("Best Individual: ", best_individual.individual)
-                    print("Connected Islands: ", best_individual.findConnected())
-                    print("Connected Oceans: ", best_individual.findConnectedOcean())
-                    print("# Islands Isolated: ", best_individual.isIsolated())
-                    print("Islands Not Isolated: ", best_individual.islandsNotIsolated())
-                    # best_individual.fixRange()
-                    best_individual.printAsMatrix()
+                        if best_individual.isSolved():
+                            print()
+                            print("Nurikabe Solved in", time.time() - startTime, "seconds!")
+                            print("Generation ", i, ": Best Fitness = ", best_fitness)
+                            print("Best Individual: ", best_individual.individual)
+                            print("Connected Islands: ", best_individual.findConnected())
+                            print("Connected Oceans: ", best_individual.findConnectedOcean())
+                            best_individual.printAsMatrix()
+                            j = 0
+                            for coord in best_individual.individual:
+                                if j < max_islands:
+                                    window[str(coord)].update(background_color='black')
+                                    window['Generation'].update(value=str(i))
+                                j += 1
+                            window.Refresh()
+                            break
 
-                avg_fitness = 0
+                        if i % self.print_interval == 0:
+                            print()
+                            print("Average Fitness: ", avg_fitness/pop_size)
+                            print("Generation ", i, ": Best Fitness = ", best_fitness)
+                            print("Best Individual: ", best_individual.individual)
+                            print("Connected Islands: ", best_individual.findConnected())
+                            print("Connected Oceans: ", best_individual.findConnectedOcean())
+                            print("# Islands Isolated: ", best_individual.isIsolated())
+                            print("Islands Not Isolated: ", best_individual.islandsNotIsolated())
+                            # best_individual.fixRange()
+                            best_individual.printAsMatrix()
+                            j = 0
+                            for coord in best_individual.individual:
+                                if j < max_islands:
+                                    window[str(coord)].update(background_color='black')
+                                    window['Generation'].update(value=str(i))
+                                j += 1
+                            window.Refresh()
 
-                population.breedPopulation()
+                        avg_fitness = 0
+
+                        population.breedPopulation()
 
     def breedPopulations(self, populations):
         random.shuffle(populations)
@@ -405,10 +429,6 @@ class Population():
             # Subtracting the p1 set from the p2 set and making sure we don't lose any coordinates
             remainders = list(p2_toSet - p1_toSet)
 
-            # DEBUGGING
-            # print("p1_toList: ", p1_toList)
-            # print("Remainders: ", remainders)
-
             child = Individual()
             child.individual = p2_random.individual.copy()
             inner = 0
@@ -421,11 +441,6 @@ class Population():
                     if child.individual[i] in p1_toList:
                         child.individual[i] = remainders.pop()
 
-            # Debugging
-            # print("Parent 1 : ", p1_random.individual)
-            # print("Parent 2 : ", p2_random.individual)
-            # print("Child    : ", child.individual)
-
             children.append(child)
 
         for i in range(self.pop_size - self.mating_pool_size):
@@ -436,72 +451,75 @@ class Population():
     # Mutates all of the individual in a given population
     # In this case, it should be all the children
     # Randomly swaps a child with an ocean
-    # def mutate(self, children):
-    #     for child in children:
-    #         # Every child has a chance to have random coordinates swapped
-    #         rand_chance = random.random()
-    #         rand_chance_2 = random.random()
-    #         squareOcean = child.findFirstOceanSquare()
-
-    #         all_one_main_islands = [x for x in center_coords if center_coords[x] == 1]
-    #         random_single_isolate = random.choice(all_one_main_islands) if all_one_main_islands else False
-
-    #         if rand_chance < self.mutation_rate:
-    #             swaps_at_a_time = random.randint(1, max_swaps)
-    #             for _ in range(swaps_at_a_time):
-    #                 random_land = random.randint(0, max_islands-1)
-    #                 while random_land in cum_sum_butlast:
-    #                     random_land = random.randint(0, max_islands-1)
-    #                 random_ocean = random.randint(max_islands, list_size-1)
-    #                 temp_coord = child.individual[random_land]
-    #                 child.individual[random_land] = child.individual[random_ocean]
-    #                 child.individual[random_ocean] = temp_coord
-    #         else:
-    #             child.propogationMutation()
-    #             if rand_chance_2 < self.mutation_rate:
-    #                 child.fixRange()
-    #             else:
-    #                 child.mutateRange()
-
-    #         # Fixing a random coordinate in a square ocean
-    #         if(squareOcean != 0):
-    #             child.fixASquare(squareOcean)
-
-    #         if random_single_isolate:
-    #             child.isolateSingleIsland(random_single_isolate)
-
-    #     return children
-
-    # Experimental mutation
     def mutate(self, children):
         for child in children:
-            rand_num = random.random()
-            if rand_num < self.mutation_rate:
-                random_island_range = child.random_island_range()
-                if len(random_island_range) == 2 and random_island_range[0] + 1 != random_island_range[1] and random_island_range[0] not in cum_sum_withmax[-2:]:
-                    main_coord = child.individual[random_island_range[0]]
-                    cur_island = child.individual[random_island_range[0]:random_island_range[1]]
-                    random_possible_island = random.choice(all_combinations[main_coord])
+            # Every child has a chance to have random coordinates swapped
+            rand_chance = random.random()
+            rand_chance_2 = random.random()
+            squareOcean = child.findFirstOceanSquare()
 
-                    child_copy = child.individual.copy()
-                    ran_isl_ind = 0
-                    for x in range(random_island_range[0], random_island_range[1]):
-                        child_copy[x] = random_possible_island[ran_isl_ind]
-                        ran_isl_ind += 1
+            all_one_main_islands = [x for x in center_coords if center_coords[x] == 1]
+            random_single_isolate = random.choice(all_one_main_islands) if all_one_main_islands else False
 
-                    cur_island_set = set(cur_island)
-                    fixed_island_set = set(random_possible_island)
-                    remainders = cur_island_set - fixed_island_set
-
-                    for i in range(len(child_copy)):
-                        if i not in range(random_island_range[0],random_island_range[1]):
-                            if child_copy[i] in fixed_island_set:
-                                child_copy[i] = remainders.pop()
-
-                    child.individual = child_copy.copy()
-                else:
+            if rand_chance < self.mutation_rate:
+                swaps_at_a_time = random.randint(1, max_swaps)
+                for _ in range(swaps_at_a_time):
+                    random_land = random.randint(0, max_islands-1)
+                    while random_land in cum_sum_butlast:
+                        random_land = random.randint(0, max_islands-1)
+                    random_ocean = random.randint(max_islands, list_size-1)
+                    temp_coord = child.individual[random_land]
+                    child.individual[random_land] = child.individual[random_ocean]
+                    child.individual[random_ocean] = temp_coord
+            else:
+                child.propogationMutation()
+                if rand_chance_2 < self.mutation_rate:
+                    # child.fixRange()
                     pass
+                else:
+                    # child.mutateRange()
+                    pass
+
+            # Fixing a random coordinate in a square ocean
+            if(squareOcean != 0):
+                child.fixASquare(squareOcean)
+
+            if random_single_isolate:
+                child.isolateSingleIsland(random_single_isolate)
+
         return children
+
+    # Experimental mutation
+    # def mutate(self, children):
+    #     for child in children:
+    #         rand_num = random.random()
+    #         if rand_num < self.mutation_rate:
+    #             random_island_range = child.random_island_range()
+    #             if len(random_island_range) == 2 and random_island_range[0] + 1 != random_island_range[1] and random_island_range[0] not in cum_sum_withmax[-2:]:
+    #                 main_coord = child.individual[random_island_range[0]]
+    #                 cur_island = child.individual[random_island_range[0]:random_island_range[1]]
+    #                 print("MAIN COORD: ", main_coord, ".. ALL COMBS: ", all_combinations[main_coord])
+    #                 random_possible_island = random.choice(all_combinations[main_coord])
+    #
+    #                 child_copy = child.individual.copy()
+    #                 ran_isl_ind = 0
+    #                 for x in range(random_island_range[0], random_island_range[1]):
+    #                     child_copy[x] = random_possible_island[ran_isl_ind]
+    #                     ran_isl_ind += 1
+    #
+    #                 cur_island_set = set(cur_island)
+    #                 fixed_island_set = set(random_possible_island)
+    #                 remainders = cur_island_set - fixed_island_set
+    #
+    #                 for i in range(len(child_copy)):
+    #                     if i not in range(random_island_range[0],random_island_range[1]):
+    #                         if child_copy[i] in fixed_island_set:
+    #                             child_copy[i] = remainders.pop()
+    #
+    #                 child.individual = child_copy.copy()
+    #             else:
+    #                 pass
+    #     return children
 
     def breedPopulation(self):
         mating_pool = self.getMatingPool()
@@ -509,33 +527,6 @@ class Population():
         mutated = self.mutate(children)
         self.population = mutated
         return self
-
-    # The tool to print an individual in a population as a matrix
-    # 0 representing water, 1-X representing islands
-    # Example:
-    # Population #0:
-    # [1, 0, 0, 1, 0]
-    # [0, 2, 1, 0, 0]
-    # [3, 1, 0, 3, 0]
-    # [1, 0, 0, 0, 0]
-    # [0, 0, 0, 0, 0]
-
-    # Convert Individual to a matrix for visualization, Takes an index (int) of a population
-    def printAsMatrix(self, index):
-        # Initializing grid
-        grid = [[0]*grid_size for i in range(grid_size)]
-
-        # islandNumber is used to mark the grid
-        islandNumber = 1
-        # Using cumsum to get the indices of the individual to extract
-        for i in range(len(cum_sum)-1):
-            for x, y in self.population[index].individual[cum_sum[i]:cum_sum[i+1]]:
-                # Assign the value in the grid
-                grid[x][y] = islandNumber
-            islandNumber += 1
-
-        for _ in grid:
-            print(_)
 
 
 class Individual():
@@ -558,7 +549,7 @@ class Individual():
         while len(self.individual) != list_size:
             self.individual = []
             for coord in center_coords:
-                    self.individual = self.individual + random.choice(all_combinations[coord])
+                self.individual = self.individual + random.choice(all_combinations[coord])
 
             for coord in all_coords:
                 if coord not in self.individual:
@@ -1079,9 +1070,9 @@ class Individual():
 
 
 def main():
-    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=100000, print_interval=5)
+    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=100000, print_interval=1)
     nurikabe.geneticAlgorithm(
-        pop_size=2000, mating_pool_size=1000, elite_size=100, mutation_rate=1, multi_objective_fitness=False)
+        pop_size=2000, mating_pool_size=500, elite_size=100, mutation_rate=0.5, multi_objective_fitness=False)
 
 
     return 0
