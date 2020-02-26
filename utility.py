@@ -61,7 +61,7 @@ def islandWorks(island, value):
 
     return True if len(connectedIsland) == value else False
 
-def findAllConnected(adjacents, starting_island, island_size, islands_in_range):
+def findAllConnected(adjacents, starting_island, island_size, islands_in_range, maneuver=False, avoid=None):
 
     if island_size == 1:
         return [[starting_island]]
@@ -91,7 +91,18 @@ def findAllConnected(adjacents, starting_island, island_size, islands_in_range):
 
                         fringe.append((child, cur_visited.copy(), cur_ttl))
 
-    return list(list(i) for i in all_islands)
+    return list(moveMainToFront(starting_island,list(i)) for i in all_islands)
+
+def moveMainToFront(starting, islands):
+    if islands[0] == starting:
+        return islands
+    else:
+        for i in range(len(islands)):
+            if islands[i] == starting:
+                temp = islands[0]
+                islands[0] = starting
+                islands[i] = temp
+    return islands
 
 def generateAdjacencies(coordinates, grid_size):
     adjacencies = dict()
@@ -113,3 +124,28 @@ def avoidCoordinates(coordinates, adjacencies):
         avoid_all = avoid_all + bad_adjacents
         definitely_avoid[coord] = avoid_all
     return definitely_avoid
+
+def combine(terms, accum, combinations, max_isl_size):
+    # print('Working..')
+    last = (len(terms) == 1)
+    n = len(terms[0])
+    for i in range(n):
+        item = accum + [terms[0][i]]
+        if len(set(sum(item, []))) != len(sum(item, [])):
+            pass
+        elif last:
+            full_item = set(sum(item, []))
+            if len(set(full_item)) == max_isl_size:
+                combinations.append(item)
+        else:
+            combine(terms[1:], item, combinations, max_isl_size)
+
+def avoidList(my_coord, everyone_else):
+    avoid = []
+
+
+if __name__ == '__main__':
+    combinations = []
+    combine([[1,2,3],[4,5,2]],[], combinations)
+    print(combinations)
+
