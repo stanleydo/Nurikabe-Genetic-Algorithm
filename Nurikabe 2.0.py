@@ -5,9 +5,16 @@ from numpy.random import choice
 import itertools
 import math
 import sys
-from nurikabe.utility import *
+from utility import *
 import PySimpleGUI as sg
 from random import randint
+
+color_island_normal = 'black'
+color_Island_solved = 'green'
+s_exit = 'Exit'
+s_generations = 'Generations:'
+s_startstop = 'Start/Stop'
+s_elapsedtime = 'Elapsed Time:'
 
 # CONSTANTS
 # Specify the grid size
@@ -16,8 +23,8 @@ from random import randint
 # grid_size = 6
 # grid_size = 7
 # grid_size = 8
-# grid_size = 10
-grid_size = 15
+grid_size = 10
+# grid_size = 15
 # /\ /\ /\ /\ /\
 
 list_size = grid_size * grid_size
@@ -25,10 +32,11 @@ list_size = grid_size * grid_size
 MAX_ROWS = MAX_COL = grid_size
 # board = [[randint(0,1) for j in range(MAX_COL)] for i in range(MAX_ROWS)]
 
-layout =  [[sg.Text('', size=(4, 2), key=str((i,j)), pad=(1,1), text_color='white', background_color='white', justification='center') for j in range(MAX_COL)] for i in range(MAX_ROWS)] +\
-          [[sg.Button('Exit', key='Exit')]] +\
-          [[sg.Button('Run', key='Run')]] +\
-          [[sg.Text('Generation: '), sg.Text('0', key='Generation', size=(10,0))]]
+layout =  [[sg.Text(s_generations, pad=(0,5)), sg.Text('0', key='Generation', size=(10,0), pad=(0,5)), sg.Text(s_elapsedtime, pad=(10,5)), sg.Text('0', key='Time', pad=(0,5), size=(10,0))]] +\
+          [[sg.Text('', size=(4, 2), key=str((i,j)), pad=(1,1), text_color='white', background_color='white', justification='center') for j in range(MAX_COL)] for i in range(MAX_ROWS)] +\
+          [[sg.Button(s_exit, key='Exit'), sg.Button(s_startstop, key='Run')]]
+
+layout_left = []
 
 window = sg.Window('Nurikabe Genetic Algorithm', layout).Finalize()
 
@@ -63,15 +71,15 @@ window = sg.Window('Nurikabe Genetic Algorithm', layout).Finalize()
 # GRID SIZE 10
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(0,4):2, (0,8):3, (1,5):4, (2,4):5, (4,1):1, (4,4):2, (5,5):2, (5,8):2, (7,5):5, (8,4):4, (9,1):4, (9,5):2}
-# center_coords = {(0,2):2, (0,5):1, (0,9):1, (1,1):2, (1,7):1, (2,3):7, (3,6):2, (6,6):1, (7,3):5, (7,8):6, (8,1):5, (8,7):1, (9,2):2, (9,5):1, (9,9):1}
+center_coords = {(0,2):2, (0,5):1, (0,9):1, (1,1):2, (1,7):1, (2,3):7, (3,6):2, (6,6):1, (7,3):5, (7,8):6, (8,1):5, (8,7):1, (9,2):2, (9,5):1, (9,9):1}
 # Broken? \/
 # center_coords = {(0,3):1, (0,6):2, (0,9):1, (1,1):2, (1,7):1, (2,4):1, (2,6):1, (7,3):5, (7,5):7, (8,2):7, (8,8):7, (9,3):2, (9,6):2}
 # center_coords = {(0,0):3, (0,2):2, (0,4):6, (0,7):8, (3,2):2, (3,8):1, (4,1):1, (5,8):2, (6,1):3, (9,2):1, (9,5):5, (9,7):1, (9,9):11}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 # Grid size 15
-center_coords = {(0,9):2, (1,1):6, (1,13):3, (1,11):3, (2,10):4, (3,1):1, (3,5):1, (3,7):2, (4,2):4, (4,8):2, (5,0):7,  (7,11):1, (6,4):2, (6,6):2, (6,8):2, (7,3):2, (7,11):2, (8,6):2, \
-                 (8,8):2, (8,10):3, (9,3):4, (9,14):7, (10,6):3, (10,12):3, (11,7):3, (11,9):4, (11,13):2, (12,4):2, (13,1):1, (13,3):1, (13,13):2, (14,5):1, (14,9):2}
+# center_coords = {(0,9):2, (1,1):6, (1,13):3, (1,11):3, (2,10):4, (3,1):1, (3,5):1, (3,7):2, (4,2):4, (4,8):2, (5,0):7,  (7,11):1, (6,4):2, (6,6):2, (6,8):2, (7,3):2, (7,11):2, (8,6):2, \
+#                  (8,8):2, (8,10):3, (9,3):4, (9,14):7, (10,6):3, (10,12):3, (11,7):3, (11,9):4, (11,13):2, (12,4):2, (13,1):1, (13,3):1, (13,13):2, (14,5):1, (14,9):2}
 
 center_coords_keys = list(center_coords.keys())
 center_coords_vals = list(center_coords.values())
@@ -114,11 +122,9 @@ for coord in center_coords:
     possible_islands = []
     all_combinations[coord] = findAllConnected(adjacencies, coord, center_coords[coord], all_coords_in_range)
 
-# print([x for x in all_combinations[(0,7)] if (2,9) in x])
-
 class NurikabeGA():
 
-    def __init__(self, grid_size, center_coords, generations, print_interval):
+    def __init__(self, grid_size, center_coords, generations, print_interval, pop_size, mating_pool_size, elite_size, mutation_rate):
 
         # Grid size indicates a NxN grid
         self.grid_size = grid_size
@@ -132,83 +138,92 @@ class NurikabeGA():
         # Prints per generation
         self.print_interval = print_interval
 
-    def geneticAlgorithm(self, pop_size, mating_pool_size=None, elite_size=None, mutation_rate=0.5):
+        # Population size
+        self.pop_size = pop_size
 
-        startTime = time.time()
+        # Mating pool size
+        self.mating_pool_size = mating_pool_size
 
-        population = Population(pop_size, mating_pool_size, elite_size, mutation_rate)
+        # Elite Size
+        self.elite_size = elite_size
 
-        best_individual = Individual()
-        best_fitness = 0
-        best_generation = 0
-        avg_fitness = 0
+        # Mutation rate (float 0 to 1)
+        self.mutation_rate = mutation_rate
+
+        self.population = None
+        self.best_individual = None
+        self.found_solution = False
+        self.steps = 0
+        # Keeps track of steps/generations
+        self.start_time = 0
+
+    def start(self):
+
+        keep_stepping, counter = False, 0
+        start_time = 0
 
         # Top Loop
         while True:
-            (event, value) = window.Read()
+            (event, value) = window.Read(timeout=10)
             if event == 'Exit':
                 break
             elif event == 'Run':
-                for i in range(0, self.generations):
-                    cur_best_fit = 0
-                    for ind in population.population:
-                        fitness = ind.calculate_fitness()
-                        avg_fitness += fitness
-                        if fitness > cur_best_fit:
-                            best_individual.individual = ind.individual.copy()
-                            cur_best_fit = fitness
-                            best_fitness = fitness
-                            best_generation = i
+                keep_stepping = not keep_stepping
+                if keep_stepping:
+                    self.reinitialize()
+            if keep_stepping:
+                if not self.found_solution:
+                    self.step()
+                else:
+                    keep_stepping = False
+                self.update_timer()
 
-                    if best_individual.isSolved():
-                        print()
-                        print("Nurikabe Solved in", time.time() - startTime, "seconds!")
-                        print("Generation ", i, ": Best Fitness = ", best_fitness)
-                        print("Best Individual: ", best_individual.individual)
-                        print("Connected Islands: ", best_individual.findConnected())
-                        print("Connected Oceans: ", best_individual.findConnectedOcean())
-                        best_individual.printAsMatrix()
-                        j = 0
-                        next_coord = 0
-                        for coord in best_individual.individual:
-                            if j < max_islands:
-                                if j in cum_sum_butlast[1:]:
-                                    next_coord += 1
-                                window[str(coord)].update(background_color='black', value=str(center_coords_vals[next_coord])+'\n#'+str(next_coord))
-                            else:
-                                window[str(coord)].update(background_color='white')
-                            window['Generation'].update(value=i)
-                            j += 1
-                        window.Refresh()
-                        break
+    def reinitialize(self):
+        self.population = Population(self.pop_size, self.mating_pool_size, self.elite_size, self.mutation_rate)
+        self.best_individual = Individual()
+        self.found_solution = False
+        self.start_time = time.time()
 
-                    if i % self.print_interval == 0:
-                        print()
-                        # print("Average Fitness: ", avg_fitness/pop_size)
-                        # print("Generation ", i, ": Best Fitness = ", best_fitness)
-                        # print("Best Individual: ", best_individual.individual)
-                        # print("Connected Islands: ", best_individual.findConnected())
-                        # print("Connected Oceans: ", best_individual.findConnectedOcean())
-                        # print("# Islands Isolated: ", best_individual.isIsolated())
-                        # print("Islands Not Isolated: ", best_individual.islandsNotIsolated())
-                        # best_individual.fixRange()
-                        # best_individual.printAsMatrix()
-                        j = 0
-                        next_coord = 0
-                        for coord in best_individual.individual:
-                            if j < max_islands:
-                                if j in cum_sum_butlast[1:]:
-                                    next_coord += 1
-                                window[str(coord)].update(background_color='black', value=str(center_coords_vals[next_coord])+'\n#'+str(next_coord))
-                            else:
-                                window[str(coord)].update(background_color='white')
-                            window['Generation'].update(value=i)
-                            j += 1
-                        window.Refresh()
+    def step(self):
+        cur_best_fit = 0
+        for ind in self.population.population:
+            fitness = ind.calculate_fitness()
+            if fitness > cur_best_fit:
+                self.best_individual.individual = ind.individual.copy()
+                cur_best_fit = fitness
+        self.steps += 1
+        if self.best_individual.isSolved():
+            self.update_gui(individual=self.best_individual, generation=self.steps, window=window, solved=True)
+            self.found_solution = True
+        elif self.steps % self.print_interval == 0:
+            self.update_gui(individual=self.best_individual, generation=self.steps, window=window, solved=False)
+        self.population.breedPopulation()
 
-                    avg_fitness = 0
+    def update_timer(self):
+        elapsed_time = round(time.time() - self.start_time, 2)
+        window['Time'].update(elapsed_time)
 
-                    population.breedPopulation()
+    def update_gui(self, individual, generation, window, solved):
+        current_color = color_island_normal if not solved else color_Island_solved
+        conflicted_island = individual.most_conflicted_island
+        red = False
+        j = 0
+        next_coord = 0
+        for coord in individual.individual:
+            if coord == conflicted_island:
+                red = True
+            if j < max_islands:
+                if j in cum_sum_butlast[1:]:
+                    next_coord += 1
+                window[str(coord)].update(background_color=current_color,
+                                          value=str(center_coords_vals[next_coord]) + '\n#' + str(next_coord))
+            
+            else:
+                window[str(coord)].update(background_color='white')
+            window['Generation'].update(value=generation)
+            j += 1
+        window.Refresh()
+
 
     def breedPopulations(self, populations):
         random.shuffle(populations)
@@ -357,6 +372,9 @@ class Individual():
         self.islands_dict = dict()
         self.ocean_start_index = cum_sum[-1]
         self.all_isl_conflicts = dict()
+
+        self.most_conflicted_island = None
+
         # ind keeps track of the index of the cum_sum_butlast
         isl = 0
 
@@ -407,11 +425,11 @@ class Individual():
         else:
             conflicts = [(coord, self.island_conflicts(coord)) for coord in center_coords]
             most_conflicted_island = random.choices(population=[x[0] for x in conflicts], weights=[y[1] for y in conflicts], k=1)[0]
-            print("CONFLICTS: ", conflicts)
-            print("Most conflicted: ", most_conflicted_island)
+            self.most_conflicted_island = most_conflicted_island
             if self.island_conflicts(most_conflicted_island) != 0:
                 self.try_reducing(most_conflicted_island)
             else:
+                self.most_conflicted_island = None
                 self.random_swap()
 
     def random_swap(self, coord=None, small=False):
@@ -530,9 +548,6 @@ class Individual():
 
             other_islands = self.individual[0:coord_index] + self.individual[coord_index+size:cum_sum[-1]]
             other_islands_adjacents = set([x for sublist in [adjacencies[y] for y in other_islands] for x in sublist]).union(set(other_islands))
-
-            if coord == (0,7):
-                print("WORKING ISLAND SEGMENT: ", working_island_segment)
 
             valid = True
             for working_coord in working_island_segment:
@@ -996,9 +1011,9 @@ class Individual():
         return curstate
 
 def main():
-    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=100000, print_interval=1)
-    nurikabe.geneticAlgorithm(
-        pop_size=1, mating_pool_size=2, elite_size=1, mutation_rate=0.65)
+    nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=100000, print_interval=1, \
+                          pop_size=1, mating_pool_size=2, elite_size=1, mutation_rate=0.65)
+    nurikabe.start()
     return 0
 
 if __name__ == "__main__":

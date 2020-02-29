@@ -91,7 +91,38 @@ def findAllConnected(adjacents, starting_island, island_size, islands_in_range, 
 
                         fringe.append((child, cur_visited.copy(), cur_ttl))
 
-    return list(moveMainToFront(starting_island,list(i)) for i in all_islands)
+    for temp_island in islands_in_range:
+        fringe = []
+        visited = []
+        ttl = 0
+        fringe.append((temp_island, visited.copy(), ttl))
+        while fringe:
+            cur_island, cur_visited, cur_ttl = fringe.pop(-1)
+
+            # print("CUR TTL: ", cur_ttl)
+
+            if cur_ttl == max_ttl:
+                if starting_island in cur_visited:
+                    all_islands.append(set(cur_visited))
+            else:
+                if cur_ttl < max_ttl:
+                    if cur_island not in cur_visited:
+                        cur_visited.append(cur_island)
+                        cur_ttl += 1
+
+                        filtered_adjacents = [coord for coord in adjacents[cur_island] if coord in islands_in_range]
+                        for child in filtered_adjacents:
+
+                            fringe.append((child, cur_visited.copy(), cur_ttl))
+
+    # BFS from each island in range to the main island coordinate
+    # all_islands = set(all_islands)
+    no_duplicates = []
+    for island in all_islands:
+        if island not in no_duplicates:
+            no_duplicates.append(island)
+
+    return list(moveMainToFront(starting_island,list(i)) for i in no_duplicates)
 
 def moveMainToFront(starting, islands):
     if islands[0] == starting:
