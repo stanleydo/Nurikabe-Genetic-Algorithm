@@ -61,8 +61,8 @@ window = sg.Window('Nurikabe Genetic Algorithm', layout).Finalize()
 
 # GRID SIZE 10
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
-# center_coords = {(0,4):2, (0,8):3, (1,5):4, (2,4):5, (4,1):1, (4,4):2, (5,5):2, (5,8):2, (7,5):5, (8,4):4, (9,1):4, (9,5):2}
-center_coords = {(0,2):2, (0,5):1, (0,9):1, (1,1):2, (1,7):1, (2,3):7, (3,6):2, (6,6):1, (7,3):5, (7,8):6, (8,1):5, (8,7):1, (9,2):2, (9,5):1, (9,9):1}
+center_coords = {(0,4):2, (0,8):3, (1,5):4, (2,4):5, (4,1):1, (4,4):2, (5,5):2, (5,8):2, (7,5):5, (8,4):4, (9,1):4, (9,5):2}
+# center_coords = {(0,2):2, (0,5):1, (0,9):1, (1,1):2, (1,7):1, (2,3):7, (3,6):2, (6,6):1, (7,3):5, (7,8):6, (8,1):5, (8,7):1, (9,2):2, (9,5):1, (9,9):1}
 # Broken? \/
 # center_coords = {(0,3):1, (0,6):2, (0,9):1, (1,1):2, (1,7):1, (2,4):1, (2,6):1, (7,3):5, (7,5):7, (8,2):7, (8,8):8, (9,3):2, (9,6):2}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
@@ -519,22 +519,21 @@ class Individual():
     # Structure of the individual is just this --> [(x,y), (x,y), ... (x,y)]
     # Randomly creates an individual with dedicated island indices - based off center_coords
     def __init__(self, multi_objective_fitness=False):
-
         self.solution = []
-
         self.states_explored = []
-
         self.individual = []
-
         self.multi_objective_fitness = multi_objective_fitness
-
         self.ocean = []
-
         self.islands_dict = dict()
         self.ocean_start_index = cum_sum[-1]
         self.all_isl_conflicts = dict()
         # ind keeps track of the index of the cum_sum_butlast
         isl = 0
+
+        self.squares = []
+        for i in range(grid_size-1):
+            for j in range(grid_size-1):
+                self.squares.append(((i,j),(i+1,j),(i,j+1),(i+1,j+1)))
 
         # Copy the list of valid coords and shuffle them in place
         random_valid_coords = valid_coords.copy()
@@ -577,11 +576,7 @@ class Individual():
         self.empty_list = [[0 for x in range(grid_size)] for y in range(grid_size)]
 
         # Create a list of possible squares. from 1 to -2, 2 to -1 for x and y
-        # This is makes searching for ocean squares less costly
-        self.squares = []
-        for i in range(grid_size-1):
-            for j in range(grid_size-1):
-                self.squares.append(((i,j),(i+1,j),(i,j+1),(i+1,j+1)))
+        # This makes searching for ocean squares less costly
 
     def numConflicts_general(self):
         conflicts = 0
@@ -597,10 +592,8 @@ class Individual():
             conflicts = [(coord, self.island_conflicts(coord)) for coord in center_coords]
             most_conflicted_island = random.choices(population=[x[0] for x in conflicts], weights=[y[1] for y in conflicts], k=1)[0]
             if self.island_conflicts(most_conflicted_island) != 0:
-                # print("Island main coord: ", most_conflicted_island, " with ", self.island_conflicts(most_conflicted_island), " conflicts.")
                 self.try_reducing(most_conflicted_island, tries)
             else:
-                print("RANDOM SWAP ")
                 self.random_swap()
 
     def random_swap(self, coord=None, small=False):
@@ -773,44 +766,6 @@ class Individual():
                     self.states_explored.append(curstate)
         self.individual = best_ind_so_far
 
-    def change_shapes(self, coord):
-        best_ind_so_far = self.individual.copy()
-        fitness_snapshot = self.calculate_fitness()
-        for working_island_segment in all_combinations[coord]:
-            # random_island_range picks a random range like [0,5] or [5,10]
-            coord_index = self.individual.index(coord)
-            size = center_coords[coord]
-            island_range = [coord_index, coord_index+size]
-            current_island = self.individual[coord_index:coord_index+size]
-
-            same_coords = set(current_island).union(set(working_island_segment))
-            new_coords = list(set(working_island_segment) - set(current_island))
-            replace_coords = []
-
-            j = 0
-            for i in range(island_range[0], island_range[1]):
-                if self.individual[i] in same_coords:
-                    pass
-                else:
-                    replace_coords.append(self.individual[i])
-                    self.individual[i] = new_coords[j]
-                    j += 1
-
-            for i in set(range(0, list_size)) - set(range(coord_index, coord_index + size)):
-                if self.individual[i] in replace_coords:
-                    index_swap = replace_coords.index(self.individual[i])
-                    self.individual[i] = replace_coords.pop(index_swap)
-
-                if self.calculate_fitness() >= fitness_snapshot:
-                    fitness_snapshot = self.calculate_fitness()
-                    best_ind_so_far = self.individual.copy()
-            # else:
-            #     if tries != 0:
-            #         self.reduce_max_conflict(tries - 1)
-            #     else:
-            #         pass
-        self.individual = best_ind_so_far
-
 
     # FITNESS FUNCTIONS SUBJECT TO CHANGE!!!
     # Just a regular fitness function
@@ -846,16 +801,6 @@ class Individual():
             total_fitness += self.connectedFitness()
         else:
             total_fitness += self.connectedFitness()
-
-        return total_fitness
-
-    # focus_island should be an island index that we want to focus on
-    # We can also specify a weight to the fitness
-    # The additional args are for multi objective fitness
-    def calculate_overall_fitness(self):
-        total_fitness = 0
-
-        # TODO
 
         return total_fitness
 
@@ -963,12 +908,23 @@ class Individual():
                 return square
         return 0
 
+    # Finds the number of squares in an ocean
     def numOceanSquares(self):
         ct = 0
         for square in self.squares:
             if(set(square).issubset(self.individual[cum_sum[-1]:])):
                 ct += 1
         return ct
+
+    # Finds and returns the set of ocean coordinates that create a square.
+    def setOfOceanSquares(self):
+        sqrs = set()
+        # Squares in self.squares is a 4-size list of coordinates (sets)
+        for square in self.squares:
+            if set(square).issubset(self.individual[cum_sum[-1]:]):
+                for sq_coord in square:
+                    sqrs.add(sq_coord)
+        return sqrs
 
     # Given a coordinate returns whether or not it is an island
     def isIsland(self,coord):
@@ -1084,6 +1040,8 @@ class Individual():
         # Incorporated a fitness value
         conflicts = 0
 
+        ocean_squares = self.setOfOceanSquares()
+
         # For each coordinate in an island, the coordinate's adjacent position must be within itself or the ocean.
         for island_start in cum_sum_butlast:
             island_end = cum_sum[isl+1]
@@ -1093,9 +1051,6 @@ class Individual():
                 island = self.individual[island_start:island_end]
                 other_islands = list(set(self.individual[0:max_islands]) - set(self.individual[island_start:island_end]))
                 other_islands_adjacents = set([x for sublist in [adjacencies[y] for y in other_islands] for x in sublist])
-
-                # An island will stay "Good" if it's isolated.
-                good_island = True
 
                 ## TODO ##
                 # Extremely inefficient!! MAKE IT BETTER!
@@ -1110,6 +1065,8 @@ class Individual():
                         conflicts += 1
                 for a in all_adjacents_no_dupes:
                     if a in other_islands:
+                        conflicts += 1
+                    if a in ocean_squares:
                         conflicts += 1
             else:
                 pass
@@ -1353,8 +1310,6 @@ class Individual():
                 island.append(self.individual[k])
             curstate.append(set(island))
         return curstate
-
-
 
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=100000, print_interval=1)

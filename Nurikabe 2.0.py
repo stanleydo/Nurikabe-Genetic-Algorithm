@@ -5,7 +5,7 @@ from numpy.random import choice
 import itertools
 import math
 import sys
-from utility import *
+from nurikabe.utility import *
 import PySimpleGUI as sg
 from random import randint
 
@@ -16,7 +16,8 @@ from random import randint
 # grid_size = 6
 # grid_size = 7
 # grid_size = 8
-grid_size = 10
+# grid_size = 10
+grid_size = 15
 # /\ /\ /\ /\ /\
 
 list_size = grid_size * grid_size
@@ -62,10 +63,15 @@ window = sg.Window('Nurikabe Genetic Algorithm', layout).Finalize()
 # GRID SIZE 10
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(0,4):2, (0,8):3, (1,5):4, (2,4):5, (4,1):1, (4,4):2, (5,5):2, (5,8):2, (7,5):5, (8,4):4, (9,1):4, (9,5):2}
-center_coords = {(0,2):2, (0,5):1, (0,9):1, (1,1):2, (1,7):1, (2,3):7, (3,6):2, (6,6):1, (7,3):5, (7,8):6, (8,1):5, (8,7):1, (9,2):2, (9,5):1, (9,9):1}
+# center_coords = {(0,2):2, (0,5):1, (0,9):1, (1,1):2, (1,7):1, (2,3):7, (3,6):2, (6,6):1, (7,3):5, (7,8):6, (8,1):5, (8,7):1, (9,2):2, (9,5):1, (9,9):1}
 # Broken? \/
-# center_coords = {(0,3):1, (0,6):2, (0,9):1, (1,1):2, (1,7):1, (2,4):1, (2,6):1, (7,3):5, (7,5):7, (8,2):7, (8,8):8, (9,3):2, (9,6):2}
+# center_coords = {(0,3):1, (0,6):2, (0,9):1, (1,1):2, (1,7):1, (2,4):1, (2,6):1, (7,3):5, (7,5):7, (8,2):7, (8,8):7, (9,3):2, (9,6):2}
+# center_coords = {(0,0):3, (0,2):2, (0,4):6, (0,7):8, (3,2):2, (3,8):1, (4,1):1, (5,8):2, (6,1):3, (9,2):1, (9,5):5, (9,7):1, (9,9):11}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+
+# Grid size 15
+center_coords = {(0,9):2, (1,1):6, (1,13):3, (1,11):3, (2,10):4, (3,1):1, (3,5):1, (3,7):2, (4,2):4, (4,8):2, (5,0):7,  (7,11):1, (6,4):2, (6,6):2, (6,8):2, (7,3):2, (7,11):2, (8,6):2, \
+                 (8,8):2, (8,10):3, (9,3):4, (9,14):7, (10,6):3, (10,12):3, (11,7):3, (11,9):4, (11,13):2, (12,4):2, (13,1):1, (13,3):1, (13,13):2, (14,5):1, (14,9):2}
 
 center_coords_keys = list(center_coords.keys())
 center_coords_vals = list(center_coords.values())
@@ -108,140 +114,101 @@ for coord in center_coords:
     possible_islands = []
     all_combinations[coord] = findAllConnected(adjacencies, coord, center_coords[coord], all_coords_in_range)
 
+# print([x for x in all_combinations[(0,7)] if (2,9) in x])
+
 class NurikabeGA():
 
     def __init__(self, grid_size, center_coords, generations, print_interval):
+
         # Grid size indicates a NxN grid
         self.grid_size = grid_size
 
         # Specifies the center island coordinates
         self.center_coords = center_coords
 
-        # Creates a list of all possible coordinates in a 5x5 grid
-        self.gene_pool = [(x, y) for y in range(self.grid_size)
-                          for x in range(self.grid_size) if (x, y) not in self.center_coords]
-
+        # Number of generations the individuals may evolve
         self.generations = generations
 
+        # Prints per generation
         self.print_interval = print_interval
 
-    def geneticAlgorithm(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False):
+    def geneticAlgorithm(self, pop_size, mating_pool_size=None, elite_size=None, mutation_rate=0.5):
+
         startTime = time.time()
 
-        if multi_objective_fitness:
-            populations = []
-            for island in range(len(cum_sum_butlast)):
-                populations.append(Population(pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate, multi_objective_fitness=multi_objective_fitness, island_number=island))
+        population = Population(pop_size, mating_pool_size, elite_size, mutation_rate)
 
-            best_individual = Individual()
-            best_fitness = 0
-            best_generation = 0
+        best_individual = Individual()
+        best_fitness = 0
+        best_generation = 0
+        avg_fitness = 0
 
-            for i in range(0, self.generations):
-                for pop in populations:
-                    for ind in pop.population:
+        # Top Loop
+        while True:
+            (event, value) = window.Read()
+            if event == 'Exit':
+                break
+            elif event == 'Run':
+                for i in range(0, self.generations):
+                    cur_best_fit = 0
+                    for ind in population.population:
                         fitness = ind.calculate_fitness()
-                        if fitness > best_fitness:
+                        avg_fitness += fitness
+                        if fitness > cur_best_fit:
                             best_individual.individual = ind.individual.copy()
+                            cur_best_fit = fitness
                             best_fitness = fitness
                             best_generation = i
-                    pop.breedPopulation()
 
-                if best_individual.isSolved():
-                    print()
-                    print("Nurikabe Solved in", time.time() - startTime, "seconds!")
-                    print("Generation ", i, ": Best Fitness = ", best_fitness)
-                    print("Best Individual: ", best_individual.individual)
-                    print("Connected Islands: ", best_individual.findConnected())
-                    print("Connected Oceans: ", best_individual.findConnectedOcean())
-                    best_individual.printAsMatrix()
-                    break
+                    if best_individual.isSolved():
+                        print()
+                        print("Nurikabe Solved in", time.time() - startTime, "seconds!")
+                        print("Generation ", i, ": Best Fitness = ", best_fitness)
+                        print("Best Individual: ", best_individual.individual)
+                        print("Connected Islands: ", best_individual.findConnected())
+                        print("Connected Oceans: ", best_individual.findConnectedOcean())
+                        best_individual.printAsMatrix()
+                        j = 0
+                        next_coord = 0
+                        for coord in best_individual.individual:
+                            if j < max_islands:
+                                if j in cum_sum_butlast[1:]:
+                                    next_coord += 1
+                                window[str(coord)].update(background_color='black', value=str(center_coords_vals[next_coord])+'\n#'+str(next_coord))
+                            else:
+                                window[str(coord)].update(background_color='white')
+                            window['Generation'].update(value=i)
+                            j += 1
+                        window.Refresh()
+                        break
 
-                if i % self.print_interval == 0:
-                    print()
-                    print("Generation ", i, ": Best Fitness = ", best_fitness)
-                    print("Best Individual: ", best_individual.individual)
-                    print("Connected Islands: ", best_individual.findConnected())
-                    print("Connected Oceans: ", best_individual.findConnectedOcean())
-                    best_individual.printAsMatrix()
+                    if i % self.print_interval == 0:
+                        print()
+                        # print("Average Fitness: ", avg_fitness/pop_size)
+                        # print("Generation ", i, ": Best Fitness = ", best_fitness)
+                        # print("Best Individual: ", best_individual.individual)
+                        # print("Connected Islands: ", best_individual.findConnected())
+                        # print("Connected Oceans: ", best_individual.findConnectedOcean())
+                        # print("# Islands Isolated: ", best_individual.isIsolated())
+                        # print("Islands Not Isolated: ", best_individual.islandsNotIsolated())
+                        # best_individual.fixRange()
+                        # best_individual.printAsMatrix()
+                        j = 0
+                        next_coord = 0
+                        for coord in best_individual.individual:
+                            if j < max_islands:
+                                if j in cum_sum_butlast[1:]:
+                                    next_coord += 1
+                                window[str(coord)].update(background_color='black', value=str(center_coords_vals[next_coord])+'\n#'+str(next_coord))
+                            else:
+                                window[str(coord)].update(background_color='white')
+                            window['Generation'].update(value=i)
+                            j += 1
+                        window.Refresh()
 
+                    avg_fitness = 0
 
-                self.breedPopulations(populations)
-
-        else:
-            population = Population(
-                pop_size=pop_size, mating_pool_size=mating_pool_size, elite_size=elite_size, mutation_rate=mutation_rate)
-
-            best_individual = Individual()
-            best_fitness = 0
-            best_generation = 0
-            avg_fitness = 0
-
-            while True:
-                (event, value) = window.Read()
-                if event == 'Exit':
-                    break
-                elif event == 'Run':
-                    for i in range(0, self.generations):
-                        cur_best_fit = 0
-                        for ind in population.population:
-                            fitness = ind.calculate_fitness()
-                            avg_fitness += fitness
-                            if fitness > cur_best_fit:
-                                best_individual.individual = ind.individual.copy()
-                                cur_best_fit = fitness
-                                best_fitness = fitness
-                                best_generation = i
-
-                        if best_individual.isSolved():
-                            print()
-                            print("Nurikabe Solved in", time.time() - startTime, "seconds!")
-                            print("Generation ", i, ": Best Fitness = ", best_fitness)
-                            print("Best Individual: ", best_individual.individual)
-                            print("Connected Islands: ", best_individual.findConnected())
-                            print("Connected Oceans: ", best_individual.findConnectedOcean())
-                            best_individual.printAsMatrix()
-                            j = 0
-                            next_coord = 0
-                            for coord in best_individual.individual:
-                                if j < max_islands:
-                                    if j in cum_sum_butlast[1:]:
-                                        next_coord += 1
-                                    window[str(coord)].update(background_color='black', value=str(center_coords_vals[next_coord])+'\n#'+str(next_coord))
-                                else:
-                                    window[str(coord)].update(background_color='white')
-                                window['Generation'].update(value=i)
-                                j += 1
-                            window.Refresh()
-                            break
-
-                        if i % self.print_interval == 0:
-                            print()
-                            print("Average Fitness: ", avg_fitness/pop_size)
-                            print("Generation ", i, ": Best Fitness = ", best_fitness)
-                            print("Best Individual: ", best_individual.individual)
-                            print("Connected Islands: ", best_individual.findConnected())
-                            print("Connected Oceans: ", best_individual.findConnectedOcean())
-                            print("# Islands Isolated: ", best_individual.isIsolated())
-                            print("Islands Not Isolated: ", best_individual.islandsNotIsolated())
-                            # best_individual.fixRange()
-                            best_individual.printAsMatrix()
-                            j = 0
-                            next_coord = 0
-                            for coord in best_individual.individual:
-                                if j < max_islands:
-                                    if j in cum_sum_butlast[1:]:
-                                        next_coord += 1
-                                    window[str(coord)].update(background_color='black', value=str(center_coords_vals[next_coord])+'\n#'+str(next_coord))
-                                else:
-                                    window[str(coord)].update(background_color='white')
-                                window['Generation'].update(value=i)
-                                j += 1
-                            window.Refresh()
-
-                        avg_fitness = 0
-
-                        population.breedPopulation()
+                    population.breedPopulation()
 
     def breedPopulations(self, populations):
         random.shuffle(populations)
@@ -262,90 +229,18 @@ class NurikabeGA():
 
 class Population():
 
-    def __init__(self, pop_size, mating_pool_size, elite_size, mutation_rate, multi_objective_fitness=False, island_number=-1):
+    def __init__(self, pop_size, mating_pool_size=None, elite_size=None, mutation_rate=0.5):
 
+        # A population is a list of individuals
         self.population = []
 
         self.pop_size = pop_size
         self.mating_pool_size = mating_pool_size
         self.elite_size = elite_size
         self.mutation_rate = mutation_rate
-        self.multi_objective_fitness = multi_objective_fitness
-        self.island_number = island_number
 
         for _ in range(pop_size):
-            self.population.append(Individual(multi_objective_fitness))
-
-    # - Selecting a random sample (like 100), then evaluating fitness and sorting them from best to worst.
-    def getMatingPool(self):
-        mating_pool = []
-
-        sample = random.sample(self.population, k=self.mating_pool_size)
-
-        if self.multi_objective_fitness:
-            for individual in sample:
-                mating_pool.append([individual, individual.calculate_fitness()])
-        else:
-            for individual in sample:
-                mating_pool.append([individual, individual.calculate_fitness()])
-
-        sorted_pool = sorted(mating_pool, key=lambda x: x[1], reverse=True)
-        only_mates = [x for x, y in sorted_pool]
-
-        # for x,y in sorted_pool:
-            # print(x.individual, y)
-        return only_mates
-
-    # Using tournament selection, a random sample of elite size is taken
-    # The elites are sorted by their fitness
-    def breed(self, mating_pool):
-        children = []
-        elites = []
-
-        # Maintain some elites based on elite size
-        # Warning !! Mating pool must be larger than elite size.
-        for i in range(self.elite_size):
-            children.append(mating_pool[i])
-            elites.append(mating_pool[i])
-
-        # Pick a random parent from the list of elites
-        # Pick another parent from the mating pool
-        for i in range(self.mating_pool_size - self.elite_size):
-            random_parent1 = random.randint(0, self.elite_size-1)
-            random_parent2 = random.randint(0, self.mating_pool_size-1)
-
-            random_chance = random.random()
-            if random_chance < 0.5:
-                parent1 = elites[random_parent1]
-            else:
-                parent1 = mating_pool[random.randint(0, self.mating_pool_size-1)]
-            parent2 = mating_pool[random_parent2]
-
-            # Find matching coordinates between two parents (Except the center coords)
-            matching_coords = [
-                x for x in parent1.individual if x in parent2.individual and x not in center_coords_keys]
-
-            # Randomly select two island coordinates
-            try:
-                random_coords = random.sample(matching_coords, k=2)
-
-                p2_a_index = parent2.index(random_coords[0])
-                p2_b_index = parent2.index(random_coords[1])
-
-                child = parent2.copy()
-                child[p2_a_index] = random_coords[1]
-                child[p2_b_index] = random_coords[0]
-
-                children.append(child)
-            except:
-                pass
-
-            children.append(Individual())
-
-        for i in range(self.pop_size - self.mating_pool_size):
-            children.append(Individual())
-
-        return children
+            self.population.append(Individual())
 
     # Moves a randomly selected island from Parent 1 and puts it into parent 2.
     # Anything that was in parent 1 that's found in parent 2 will be replaced with the remainders.
@@ -414,94 +309,29 @@ class Population():
     # Randomly swaps a child with an ocean
     def mutate(self, children):
         for child in children:
-            print("1")
-            child.printAsMatrix()
-            # Every child has a chance to have random coordinates swapped
+
             rand_chance = random.random()
-            rand_chance_2 = random.random()
-            squareOcean = child.findFirstOceanSquare()
-            # Focus on minimizing conflicts with the larger islands first.
-            # All one main islands is a list of all the islands with size 1
-            all_one_main_islands = [x for x in center_coords if center_coords[x] == 1]
 
             solved_child = None
-
-            random_single_isolate = random.choice(all_one_main_islands) if all_one_main_islands else False
-            # child.random_swap()
-            # child.reduce_max_conflict()
-            # child.reduce_max_conflict()
+            #
             if rand_chance < self.mutation_rate:
                 child.random_swap()
                 if child.isSolved():
                     solved_child = child
-                # swaps_at_a_time = random.randint(1, max_swaps)
-                # for _ in range(swaps_at_a_time):
-                #     random_land = random.randint(0, max_islands-1)
-                #     while random_land in cum_sum_butlast:
-                #         random_land = random.randint(0, max_islands-1)
-                #     random_ocean = random.randint(max_islands, list_size-1)
-                #     temp_coord = child.individual[random_land]
-                #     child.individual[random_land] = child.individual[random_ocean]
-                #     child.individual[random_ocean] = temp_coord
             else:
                 child.small_swap()
                 if child.isSolved():
                     solved_child = child
-                # if rand_chance_2 < self.mutation_rate:
-                #     child.reduce_max_conflict()
-                # else:
-                #     child.small_swap()
-            # child.random_swap()
+
             child.reduce_max_conflict()
+
             if child.isSolved():
                 solved_child = child
-            child.states_explored.append(child.curState())
-            # Fixing a random coordinate in a square ocean
-            # if(squareOcean != 0):
-            #     child.fixASquare(squareOcean)
-            #
-            # if random_single_isolate:
-            #     child.isolateSingleIsland(random_single_isolate)
-            #
-            # child.fixRange()
+
             if solved_child:
                 children[0] = solved_child
-            print("2")
-            child.printAsMatrix()
-            print()
-        return children
 
-    # Experimental mutation
-    # def mutate(self, children):
-    #     for child in children:
-    #         rand_num = random.random()
-    #         if rand_num < self.mutation_rate:
-    #             random_island_range = child.random_island_range()
-    #             if len(random_island_range) == 2 and random_island_range[0] + 1 != random_island_range[1] and random_island_range[0] not in cum_sum_withmax[-2:]:
-    #                 main_coord = child.individual[random_island_range[0]]
-    #                 cur_island = child.individual[random_island_range[0]:random_island_range[1]]
-    #                 print("MAIN COORD: ", main_coord, ".. ALL COMBS: ", all_combinations[main_coord])
-    #                 random_possible_island = random.choice(all_combinations[main_coord])
-    #
-    #                 child_copy = child.individual.copy()
-    #                 ran_isl_ind = 0
-    #                 for x in range(random_island_range[0], random_island_range[1]):
-    #                     child_copy[x] = random_possible_island[ran_isl_ind]
-    #                     ran_isl_ind += 1
-    #
-    #                 cur_island_set = set(cur_island)
-    #                 fixed_island_set = set(random_possible_island)
-    #                 remainders = cur_island_set - fixed_island_set
-    #
-    #                 for i in range(len(child_copy)):
-    #                     if i not in range(random_island_range[0],random_island_range[1]):
-    #                         if child_copy[i] in fixed_island_set:
-    #                             child_copy[i] = remainders.pop()
-    #
-    #                 child.individual = child_copy.copy()
-    #             else:
-    #                 pass
-    #     return children
+        return children
 
     def breedPopulation(self):
         # mating_pool = self.getMatingPool()
@@ -516,25 +346,26 @@ class Population():
 
 class Individual():
 
-    # Structure of the individual is just this --> [(x,y), (x,y), ... (x,y)]
-    # Randomly creates an individual with dedicated island indices - based off center_coords
-    def __init__(self, multi_objective_fitness=False):
+    def __init__(self):
 
-        self.solution = []
-
-        self.states_explored = []
+        self.states = []
 
         self.individual = []
-
-        self.multi_objective_fitness = multi_objective_fitness
+        self.islands_lists = []
 
         self.ocean = []
-
         self.islands_dict = dict()
         self.ocean_start_index = cum_sum[-1]
         self.all_isl_conflicts = dict()
         # ind keeps track of the index of the cum_sum_butlast
         isl = 0
+
+        # Create a list of possible squares. from 1 to -2, 2 to -1 for x and y
+        # This makes searching for ocean squares less costly
+        self.squares = []
+        for i in range(grid_size-1):
+            for j in range(grid_size-1):
+                self.squares.append(((i,j),(i+1,j),(i,j+1),(i+1,j+1)))
 
         # Copy the list of valid coords and shuffle them in place
         random_valid_coords = valid_coords.copy()
@@ -552,7 +383,6 @@ class Individual():
                 if coord not in self.individual:
                     self.ocean.append(coord)
                     self.individual.append(coord)
-            # print("OCE: ", self.findConnectedOcean())
             if len(self.findConnectedOcean()) == max_waters:
                 satisfied = True
 
@@ -562,26 +392,7 @@ class Individual():
         for main_coord in center_coords:
             self.all_isl_conflicts[main_coord] = self.island_conflicts(main_coord)
 
-
-        # # List building: Loop through size of the list ... (i = 0..24 for a 5x5)
-        # for i in range(list_size):
-
-        #     # isl is initialized outside of the loop b/c it keeps track of the index of cum_sum_butlast
-        #     # cum_sum_butlast is a list of indices where an island is supposed to start.
-        #     if isl < len(cum_sum_butlast) and i == cum_sum_butlast[isl]:
-        #         self.individual.append(center_coords_keys[isl])
-        #         isl += 1
-        #     else:
-        #         # Pop & append a coordinate from the newly created randomized list of valid coords to the individual.
-        #         self.individual.append(random_valid_coords.pop())
         self.empty_list = [[0 for x in range(grid_size)] for y in range(grid_size)]
-
-        # Create a list of possible squares. from 1 to -2, 2 to -1 for x and y
-        # This is makes searching for ocean squares less costly
-        self.squares = []
-        for i in range(grid_size-1):
-            for j in range(grid_size-1):
-                self.squares.append(((i,j),(i+1,j),(i,j+1),(i+1,j+1)))
 
     def numConflicts_general(self):
         conflicts = 0
@@ -590,22 +401,22 @@ class Individual():
         conflicts += max_waters - len(self.findConnectedOcean())
         return conflicts
 
-    def reduce_max_conflict(self, tries=2):
+    def reduce_max_conflict(self):
         if self.isSolved():
             pass
         else:
             conflicts = [(coord, self.island_conflicts(coord)) for coord in center_coords]
             most_conflicted_island = random.choices(population=[x[0] for x in conflicts], weights=[y[1] for y in conflicts], k=1)[0]
+            print("CONFLICTS: ", conflicts)
+            print("Most conflicted: ", most_conflicted_island)
             if self.island_conflicts(most_conflicted_island) != 0:
-                # print("Island main coord: ", most_conflicted_island, " with ", self.island_conflicts(most_conflicted_island), " conflicts.")
-                self.try_reducing(most_conflicted_island, tries)
+                self.try_reducing(most_conflicted_island)
             else:
-                print("RANDOM SWAP ")
                 self.random_swap()
 
     def random_swap(self, coord=None, small=False):
-        large_coords = [(x,center_coords[x]) for x in center_coords if center_coords[x] >= 3]
-        print(large_coords)
+        large_coords = [(x,self.island_conflicts(x)) for x in center_coords if center_coords[x] >= 3]
+
         if not small:
             coord = random.choices(population=[x[0] for x in large_coords], weights=[x[1] for x in large_coords], k=1)[0]
         fitness_snapshot = self.calculate_fitness()
@@ -621,12 +432,9 @@ class Individual():
         other_islands_adjacents = set(
             [x for sublist in [adjacencies[y] for y in other_islands] for x in sublist]).union(set(other_islands))
 
-        print("OIA: ", other_islands_adjacents)
         all_individuals = []
 
         for working_island_segment in all_combinations[coord]:
-            print("COORD: ", coord)
-            print("WIS: ", working_island_segment)
             valid = True
             for working_coord in working_island_segment:
                 if working_coord in other_islands_adjacents:
@@ -634,25 +442,18 @@ class Individual():
 
             if valid:
                 current_island = self.individual[coord_index:coord_index + size]
-                print("CURRENT ISLAND: ", current_island)
                 same_coords = set(current_island).intersection(set(working_island_segment))
-                print("SMAE COORDS: ", same_coords)
                 coords_cur_but_work = list(set(current_island) - set(working_island_segment))
-                print("CUR COORDS BUT WORK: ", coords_cur_but_work)
                 coords_work_but_cur = list(set(working_island_segment) - set(current_island))
-                print("CUR WORK BUT CUR", coords_work_but_cur)
                 replace_coords = []
 
                 if not set(current_island) == same_coords:
 
                     j = 0
                     for i in range(island_range[0],island_range[1]):
-                        print("INDIV: ", self.individual[i])
-                        print("i:", i)
                         if self.individual[i] in same_coords:
                             pass
                         else:
-                            print("j: ", j)
                             replace_coords.append(self.individual[i])
                             self.individual[i] = coords_work_but_cur[j]
                             j += 1
@@ -661,19 +462,13 @@ class Individual():
                         if self.individual[i] in coords_work_but_cur:
                             self.individual[i] = coords_cur_but_work.pop()
 
-                    curstate = self.curState()
-
-                    if curstate not in self.states_explored:
-                        if self.calculate_fitness() >= fitness_snapshot:
-                            best_individual_so_far = self.individual.copy()
-                            fitness_snapshot = self.calculate_fitness()
-                            all_individuals.append((self.individual.copy(), fitness_snapshot))
-                        else:
-                            all_individuals.append((self.individual.copy(), self.calculate_fitness()))
+                    if self.calculate_fitness() >= fitness_snapshot:
+                        best_individual_so_far = self.individual.copy()
+                        fitness_snapshot = self.calculate_fitness()
+                        all_individuals.append((self.individual.copy(), fitness_snapshot))
                     else:
-                        pass
+                        all_individuals.append((self.individual.copy(), self.calculate_fitness()))
                     self.individual = individual_snapshot
-        print("ALLS: ", all_individuals)
         if len(all_individuals) != 0:
             good_individual = random.choices(population=[x[0] for x in all_individuals], weights=[x[1] for x in all_individuals], k=1)[0]
             self.individual = good_individual
@@ -687,7 +482,7 @@ class Individual():
 
     def force_swap(self, coord):
         working_island_segment = random.choice(all_combinations[coord])
-        print("WORKING: ", working_island_segment)
+
         # random_island_range picks a random range like [0,5] or [5,10]
         coord_index = self.individual.index(coord)
         size = center_coords[coord]
@@ -695,13 +490,9 @@ class Individual():
         current_island = self.individual[coord_index:coord_index + size].copy()
         rest_of_current_island = [x for x in self.individual if x not in current_island]
 
-        print("CURRENT ISLAND: ", current_island)
         same_coords = set(current_island).intersection(set(working_island_segment))
-        print("SMAE COORDS: ", same_coords)
         coords_cur_but_work = list(set(current_island) - set(working_island_segment))
-        print("CUR COORDS BUT WORK: ", coords_cur_but_work)
         coords_work_but_cur = list(set(working_island_segment) - set(current_island))
-        print("CUR WORK BUT CUR", coords_work_but_cur)
         replace_coords = []
 
         j = 0
@@ -719,12 +510,12 @@ class Individual():
 
     def reduce_random(self):
         coord = random.choice(center_coords_keys)
-        self.try_reducing(coord, 2)
+        self.try_reducing(coord)
 
-    def try_reducing(self, coord, tries, small_swap=False):
+    def try_reducing(self, coord, small_swap=False):
         best_ind_so_far = self.individual.copy()
         fitness_snapshot = self.calculate_fitness()
-        conflicts_snapshot = self.island_conflicts(coord) + self.numConflicts_general()
+        conflicts_snapshot = self.island_conflicts(coord)
         validOnce = False
         for working_island_segment in all_combinations[coord]:
             # random_island_range picks a random range like [0,5] or [5,10]
@@ -733,16 +524,15 @@ class Individual():
             island_range = [coord_index, coord_index+size]
             current_island = self.individual[coord_index:coord_index+size]
 
-            print("CURRENT ISLAND: ", current_island)
             same_coords = set(current_island).intersection(set(working_island_segment))
-            print("SMAE COORDS: ", same_coords)
             coords_cur_but_work = list(set(current_island) - set(working_island_segment))
-            print("CUR COORDS BUT WORK: ", coords_cur_but_work)
             coords_work_but_cur = list(set(working_island_segment) - set(current_island))
-            print("CUR WORK BUT CUR", coords_work_but_cur)
 
             other_islands = self.individual[0:coord_index] + self.individual[coord_index+size:cum_sum[-1]]
             other_islands_adjacents = set([x for sublist in [adjacencies[y] for y in other_islands] for x in sublist]).union(set(other_islands))
+
+            if coord == (0,7):
+                print("WORKING ISLAND SEGMENT: ", working_island_segment)
 
             valid = True
             for working_coord in working_island_segment:
@@ -764,56 +554,16 @@ class Individual():
 
                 if self.isSolved():
                     self.solution = self.individual
-                curstate = self.curState()
-                if curstate not in self.states_explored:
-                    if (self.calculate_fitness() >= fitness_snapshot or self.island_conflicts(coord) + self.numConflicts_general() <= conflicts_snapshot):
+                    best_ind_so_far = self.individual.copy()
+                    break
+                else:
+                    conflicts = self.island_conflicts(coord)
+                    if (self.calculate_fitness() >= fitness_snapshot and conflicts <= conflicts_snapshot):
                         fitness_snapshot = self.calculate_fitness()
                         best_ind_so_far = self.individual.copy()
-                        conflicts_snapshot = self.island_conflicts(coord) + self.numConflicts_general()
-                    self.states_explored.append(curstate)
+                        conflicts_snapshot = self.island_conflicts(coord)
         self.individual = best_ind_so_far
 
-    def change_shapes(self, coord):
-        best_ind_so_far = self.individual.copy()
-        fitness_snapshot = self.calculate_fitness()
-        for working_island_segment in all_combinations[coord]:
-            # random_island_range picks a random range like [0,5] or [5,10]
-            coord_index = self.individual.index(coord)
-            size = center_coords[coord]
-            island_range = [coord_index, coord_index+size]
-            current_island = self.individual[coord_index:coord_index+size]
-
-            same_coords = set(current_island).union(set(working_island_segment))
-            new_coords = list(set(working_island_segment) - set(current_island))
-            replace_coords = []
-
-            j = 0
-            for i in range(island_range[0], island_range[1]):
-                if self.individual[i] in same_coords:
-                    pass
-                else:
-                    replace_coords.append(self.individual[i])
-                    self.individual[i] = new_coords[j]
-                    j += 1
-
-            for i in set(range(0, list_size)) - set(range(coord_index, coord_index + size)):
-                if self.individual[i] in replace_coords:
-                    index_swap = replace_coords.index(self.individual[i])
-                    self.individual[i] = replace_coords.pop(index_swap)
-
-                if self.calculate_fitness() >= fitness_snapshot:
-                    fitness_snapshot = self.calculate_fitness()
-                    best_ind_so_far = self.individual.copy()
-            # else:
-            #     if tries != 0:
-            #         self.reduce_max_conflict(tries - 1)
-            #     else:
-            #         pass
-        self.individual = best_ind_so_far
-
-
-    # FITNESS FUNCTIONS SUBJECT TO CHANGE!!!
-    # Just a regular fitness function
     def calculate_fitness(self, island_focus=-1):
         total_fitness = 0.0
 
@@ -828,11 +578,6 @@ class Individual():
         else:
             return oceans_fitness
 
-        # if self.isAllPossible() != len(center_coords):
-        #     return self.isAllPossible() + total_fitness
-        # else:
-        #     pass
-
         if self.isOceanSquare():
             return oceans_fitness - self.numOceanSquares()
 
@@ -846,16 +591,6 @@ class Individual():
             total_fitness += self.connectedFitness()
         else:
             total_fitness += self.connectedFitness()
-
-        return total_fitness
-
-    # focus_island should be an island index that we want to focus on
-    # We can also specify a weight to the fitness
-    # The additional args are for multi objective fitness
-    def calculate_overall_fitness(self):
-        total_fitness = 0
-
-        # TODO
 
         return total_fitness
 
@@ -928,6 +663,33 @@ class Individual():
         connectedOceans.append(coordsAdjinclCenter)
         return connectedOceans
 
+    def allConnectedOceans(self):
+
+        ocean_unchanged = self.individual[self.ocean_start_index:len(self.individual)]
+
+        # The set of ocean coordinates
+        ocean = set(ocean_unchanged.copy())
+
+        ocean_nodes_visited = set()
+
+        all_connected_oceans = []
+
+        for ocean_node in ocean:
+            if ocean_node not in ocean_nodes_visited:
+                fringe = [ocean_node]
+                visited = set()
+                while fringe:
+                    current_ocean = fringe.pop(0)
+                    ocean_nodes_visited.add(current_ocean)
+                    visited.add(current_ocean)
+                    ocean_adjacents = [x for x in adjacencies[current_ocean] if x in ocean_unchanged and x not in ocean_nodes_visited]
+                    for adjacent in ocean_adjacents:
+                        fringe.append(adjacent)
+                all_connected_oceans.append(list(visited))
+            ocean = ocean - ocean_nodes_visited
+
+        return all_connected_oceans
+
     # TODO: check for the longest length ocean, not just the ones adj to the first
     def findConnectedOceans2(self):
         searching = True
@@ -963,6 +725,7 @@ class Individual():
                 return square
         return 0
 
+    # Finds the number of squares in an ocean
     def numOceanSquares(self):
         ct = 0
         for square in self.squares:
@@ -970,26 +733,27 @@ class Individual():
                 ct += 1
         return ct
 
+    # Finds and returns the set of ocean coordinates that create a square.
+    def setOfOceanSquares(self):
+        sqrs = set()
+        # Squares in self.squares is a 4-size list of coordinates (sets)
+        for square in self.squares:
+            if set(square).issubset(self.individual[cum_sum[-1]:]):
+                for sq_coord in square:
+                    sqrs.add(sq_coord)
+        return sqrs
+
+    def smallestConnectedOceans(self):
+        connected_oceans = sorted(self.allConnectedOceans(), key=len)[:-1]
+        # print("CONNECTED OCEANS: ", connected_oceans)
+        # print("OTHER THING: ", [y for x in connected_oceans for y in x])
+        return [y for x in connected_oceans for y in x]
+
     # Given a coordinate returns whether or not it is an island
     def isIsland(self,coord):
         if(self.individual.index(coord) < cum_sum[-1]):
             return True
         return False
-
-    def isolateSingleIsland(self, coord):
-        # Check all the adj if theyre islands
-        adjIslands = []
-        for coordinate in adjacencies[coord]:
-            if(self.isIsland(coordinate)):
-                adjIslands.append(coordinate)
-
-        # For each island found, swap it with a random ocean
-        for island in adjIslands:
-            randomOceanIndex = self.individual.index(random.choice(self.individual[cum_sum[-1]:]))
-            tempIsland = island
-            self.individual[self.individual.index(island)] = self.individual[randomOceanIndex]
-            self.individual[randomOceanIndex] = tempIsland
-
 
     def connectedFitness(self):
         connectedIslands = self.findConnected()
@@ -1025,14 +789,6 @@ class Individual():
         # connectedFitness = sum([-1 if len(cIsland) > sizes else len(cIsland) if len(cIsland) != sizes
         # else bestScore for (cIsland, sizes) in zip(connectedOceans, bestIslandSizes)])
         return connectedFitness
-
-    # Specify which island gets a weight
-    def connectedFitnessWeighted(self, island_number):
-        connectedIsland = self.findConnected()[island_number]
-        bestIslandSizes = [x2 - x1 for (x1, x2) in zip(cum_sum[0:], cum_sum[1:])]
-        bestIslandSize = bestIslandSizes[island_number]
-        islandFitness = bestIslandSize if len(connectedIsland) == bestIslandSize else len(connectedIsland) if len(connectedIsland) < bestIslandSize else len(connectedIsland) + (bestIslandSize - len(connectedIsland))
-        return islandFitness - 1
 
     # This is the main isIsolated function that is currently in use.
     def isIsolated(self):
@@ -1084,6 +840,10 @@ class Individual():
         # Incorporated a fitness value
         conflicts = 0
 
+        ocean_squares = self.setOfOceanSquares()
+
+        small_connected_oceans = self.smallestConnectedOceans()
+
         # For each coordinate in an island, the coordinate's adjacent position must be within itself or the ocean.
         for island_start in cum_sum_butlast:
             island_end = cum_sum[isl+1]
@@ -1093,9 +853,6 @@ class Individual():
                 island = self.individual[island_start:island_end]
                 other_islands = list(set(self.individual[0:max_islands]) - set(self.individual[island_start:island_end]))
                 other_islands_adjacents = set([x for sublist in [adjacencies[y] for y in other_islands] for x in sublist])
-
-                # An island will stay "Good" if it's isolated.
-                good_island = True
 
                 ## TODO ##
                 # Extremely inefficient!! MAKE IT BETTER!
@@ -1108,8 +865,13 @@ class Individual():
                 for coord in island:
                     if coord not in all_adjacents_no_dupes and len(island) != 1 or coord in other_islands_adjacents:
                         conflicts += 1
+                        pass
                 for a in all_adjacents_no_dupes:
                     if a in other_islands:
+                        conflicts += 1
+                    if a in ocean_squares:
+                        conflicts += 1
+                    if a in small_connected_oceans:
                         conflicts += 1
             else:
                 pass
@@ -1170,57 +932,6 @@ class Individual():
         #       cum_sum[island_start_index:island_start_index+2])
         return cum_sum_withmax[island_start_index:island_start_index + 2]
 
-    # Finds an island that has incomplete connections
-    # Returns the island number (or index)
-    def shortIsland(self):
-        islands = self.findConnected()
-
-        island_number = 0
-        for island in islands:
-            if len(island) != center_coords_vals[island_number]:
-                return island_number,island
-            else:
-                island_number += 1
-        return -1,[]
-
-    # Finds out where an island can be swapped with ocean to achieve full connection
-    def addToShortIsland(self):
-        # The starting index for cum_sum of the island, and the actual connected islands
-        short_island_index,connected_islands = self.shortIsland()
-
-        if short_island_index == -1:
-            return ()
-        # The full island
-        short_island = self.individual[cum_sum[short_island_index]:cum_sum[short_island_index+1]]
-
-        # Find coordinates that are not connected
-        replacement_coordinates = set(short_island) - set(connected_islands)
-
-        # Find any possible adjacent oceans that these coordinates can take around the actual connected
-        coords_all_adjacent = set([x for sub in [adjacencies[coord] for coord in connected_islands] for x in sub])
-        valid_adjacents_in_ocean = coords_all_adjacent.intersection(set(self.individual[self.ocean_start_index:len(self.individual)]))
-
-        return (list(replacement_coordinates), list(valid_adjacents_in_ocean))
-
-    # def findIslandConflicts(self):
-    #     for island in
-
-
-    def propogationMutation(self):
-        if len(self.addToShortIsland()) != 0:
-            replacement_coordinates, valid_adjacents_in_ocean = self.addToShortIsland()
-            random.shuffle(valid_adjacents_in_ocean)
-
-            for coord in replacement_coordinates:
-                my_index = self.individual.index(coord)
-                if valid_adjacents_in_ocean:
-                    ocean_index = self.individual.index(valid_adjacents_in_ocean.pop())
-                    temp_coord = coord
-                    self.individual[my_index] = self.individual[ocean_index]
-                    self.individual[ocean_index] = temp_coord
-        else:
-            pass
-
     def printAsMatrix(self):
 
         island_number = 1
@@ -1245,59 +956,6 @@ class Individual():
         if self.isIsolated() == len(center_coords) and self.connectedFitnessOcean() == max_waters and not self.isOceanSquare() and self.calculate_fitness() == largest_fitness_possible:
             return True
 
-        # squares = [(x,y), (x,y), (x,y), (x,y)]
-    def fixASquare(self, square):
-        # Ocean
-        if (square != 0):
-            # print("test")
-            random_ocean_coord = random.choice(square)
-            # print("random ocean coord: ", random_ocean_coord)
-            random_ocean_index = self.individual.index(random_ocean_coord)
-            # print("random ocean index: ", random_ocean_index)
-            closest_coord_range = self.closestMainIsland(random_ocean_coord)
-
-            if closest_coord_range:
-                # print("closest coord range: ", closest_coord_range)
-                # One of the closest lands
-                random_land_index = random.choice(closest_coord_range)
-                # print("random land index: ", random_land_index)
-                random_land_coord = self.individual[random_land_index]
-                self.individual[random_land_index] = random_ocean_coord
-                self.individual[random_ocean_index] = random_land_coord
-
-    def closestMainIsland(self, coord):
-        coordX, coordY = coord
-        closest_distance = sys.maxsize
-        closest_coord_range = []
-        next_index = 1
-        for main_coord_index in cum_sum_butlast:
-            mainX, mainY = self.individual[main_coord_index]
-            # distance = math.sqrt(abs(coordX - mainX)**2 + abs(coordY - mainY)**2) #Euclidian
-            distance = abs(coordX - mainX) + abs(coordY - mainY) #manhattan
-            if distance < closest_distance:
-                closest_distance = distance
-                closest_coord_range = range(main_coord_index+1, cum_sum[next_index])
-            next_index += 1
-        return closest_coord_range
-
-    def fixRange(self):
-        for i in range(len(cum_sum_butlast)):
-            center = self.individual[cum_sum[i]]
-            max_size = center_coords[center]
-            for coord in self.individual[cum_sum[i]+1:cum_sum[i+1]]:
-                if max_size != 1:
-                    if inRange(max_size, center, coord):
-                        pass
-                    else:
-                        in_range_oceans = [x for x in self.individual[cum_sum[-1]:] if inRange(max_size, center, x)]
-                        if in_range_oceans:
-                            random_ocean = random.choice(in_range_oceans)
-                            rand_ocean_index = self.individual.index(random_ocean)
-                            coord_index = self.individual.index(coord)
-
-                            self.individual[rand_ocean_index] = coord
-                            self.individual[coord_index] = random_ocean
-
     def allInRange(self):
         for i in range(len(cum_sum_butlast)):
             center = self.individual[cum_sum[i]]
@@ -1309,23 +967,6 @@ class Individual():
                     else:
                         return False
         return True
-
-    def mutateRange(self):
-        for i in range(len(cum_sum_butlast)):
-            center = self.individual[cum_sum[i]]
-            max_size = center_coords[center]
-            coords = self.individual[cum_sum[i]+1:cum_sum[i+1]]
-            if coords:
-                coord = random.choice(coords)
-                if max_size != 1:
-                    in_range_oceans = [x for x in self.individual[cum_sum[-1]:] if inRange(max_size, center, x)]
-                    if in_range_oceans:
-                        random_ocean = random.choice(in_range_oceans)
-                        rand_ocean_index = self.individual.index(random_ocean)
-                        coord_index = self.individual.index(coord)
-
-                        self.individual[rand_ocean_index] = coord
-                        self.individual[coord_index] = random_ocean
 
     def all_possible_islands(self, coord, value):
         if value == 1:
@@ -1354,16 +995,11 @@ class Individual():
             curstate.append(set(island))
         return curstate
 
-
-
 def main():
     nurikabe = NurikabeGA(grid_size=grid_size, center_coords=center_coords, generations=100000, print_interval=1)
     nurikabe.geneticAlgorithm(
-        pop_size=1, mating_pool_size=2, elite_size=1, mutation_rate=0.65, multi_objective_fitness=False)
-
-
+        pop_size=1, mating_pool_size=2, elite_size=1, mutation_rate=0.65)
     return 0
-
 
 if __name__ == "__main__":
     main()
