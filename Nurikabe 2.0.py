@@ -11,6 +11,7 @@ from random import randint
 
 color_island_normal = 'black'
 color_Island_solved = 'green'
+color_island_error = 'orange'
 s_exit = 'Exit'
 s_generations = 'Generations:'
 s_startstop = 'Start/Stop'
@@ -32,7 +33,7 @@ list_size = grid_size * grid_size
 MAX_ROWS = MAX_COL = grid_size
 # board = [[randint(0,1) for j in range(MAX_COL)] for i in range(MAX_ROWS)]
 
-layout =  [[sg.Text(s_generations, pad=(0,5)), sg.Text('0', key='Generation', size=(10,0), pad=(0,5)), sg.Text(s_elapsedtime, pad=(10,5)), sg.Text('0', key='Time', pad=(0,5), size=(10,0))]] +\
+layout =  [[sg.Text(s_generations, pad=(0,5)), sg.Text('0', key='Generation', size=(10,0), pad=(0,5)), sg.Text(s_elapsedtime, pad=(0,5)), sg.Text('0', key='Time', pad=(0,5), size=(6,0))]] +\
           [[sg.Text('', size=(4, 2), key=str((i,j)), pad=(1,1), text_color='white', background_color='white', justification='center') for j in range(MAX_COL)] for i in range(MAX_ROWS)] +\
           [[sg.Button(s_exit, key='Exit'), sg.Button(s_startstop, key='Run')]]
 
@@ -72,13 +73,11 @@ window = sg.Window('Nurikabe Genetic Algorithm', layout).Finalize()
 # \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
 # center_coords = {(0,4):2, (0,8):3, (1,5):4, (2,4):5, (4,1):1, (4,4):2, (5,5):2, (5,8):2, (7,5):5, (8,4):4, (9,1):4, (9,5):2}
 center_coords = {(0,2):2, (0,5):1, (0,9):1, (1,1):2, (1,7):1, (2,3):7, (3,6):2, (6,6):1, (7,3):5, (7,8):6, (8,1):5, (8,7):1, (9,2):2, (9,5):1, (9,9):1}
-# Broken? \/
-# center_coords = {(0,3):1, (0,6):2, (0,9):1, (1,1):2, (1,7):1, (2,4):1, (2,6):1, (7,3):5, (7,5):7, (8,2):7, (8,8):7, (9,3):2, (9,6):2}
 # center_coords = {(0,0):3, (0,2):2, (0,4):6, (0,7):8, (3,2):2, (3,8):1, (4,1):1, (5,8):2, (6,1):3, (9,2):1, (9,5):5, (9,7):1, (9,9):11}
 # /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
 
 # Grid size 15
-# center_coords = {(0,9):2, (1,1):6, (1,13):3, (1,11):3, (2,10):4, (3,1):1, (3,5):1, (3,7):2, (4,2):4, (4,8):2, (5,0):7,  (7,11):1, (6,4):2, (6,6):2, (6,8):2, (7,3):2, (7,11):2, (8,6):2, \
+# center_coords = {(0,9):2, (1,1):6, (1,13):3, (1,11):3, (2,10):4, (3,1):1, (3,5):1, (3,7):2, (4,2):4, (4,8):2, (5,0):7, (5,11):1, (6,4):2, (6,6):2, (6,8):2, (7,3):2, (7,11):1, (8,6):2, \
 #                  (8,8):2, (8,10):3, (9,3):4, (9,14):7, (10,6):3, (10,12):3, (11,7):3, (11,9):4, (11,13):2, (12,4):2, (13,1):1, (13,3):1, (13,13):2, (14,5):1, (14,9):2}
 
 center_coords_keys = list(center_coords.keys())
@@ -166,6 +165,7 @@ class NurikabeGA():
         while True:
             (event, value) = window.Read(timeout=10)
             if event == 'Exit':
+                sys.exit()
                 break
             elif event == 'Run':
                 keep_stepping = not keep_stepping
@@ -178,18 +178,21 @@ class NurikabeGA():
                     keep_stepping = False
                 self.update_timer()
 
+
+
     def reinitialize(self):
         self.population = Population(self.pop_size, self.mating_pool_size, self.elite_size, self.mutation_rate)
         self.best_individual = Individual()
         self.found_solution = False
         self.start_time = time.time()
+        self.steps = 0
 
     def step(self):
         cur_best_fit = 0
         for ind in self.population.population:
             fitness = ind.calculate_fitness()
             if fitness > cur_best_fit:
-                self.best_individual.individual = ind.individual.copy()
+                self.best_individual = ind
                 cur_best_fit = fitness
         self.steps += 1
         if self.best_individual.isSolved():
@@ -206,18 +209,19 @@ class NurikabeGA():
     def update_gui(self, individual, generation, window, solved):
         current_color = color_island_normal if not solved else color_Island_solved
         conflicted_island = individual.most_conflicted_island
-        red = False
+        print(conflicted_island)
         j = 0
-        next_coord = 0
+        island_number = 0
         for coord in individual.individual:
-            if coord == conflicted_island:
-                red = True
             if j < max_islands:
                 if j in cum_sum_butlast[1:]:
-                    next_coord += 1
-                window[str(coord)].update(background_color=current_color,
-                                          value=str(center_coords_vals[next_coord]) + '\n#' + str(next_coord))
-            
+                    island_number += 1
+                if coord in conflicted_island:
+                    window[str(coord)].update(background_color=color_island_error,
+                                              value=str(center_coords_vals[island_number]) + '\n#' + str(island_number))
+                else:
+                    window[str(coord)].update(background_color=current_color,
+                                              value=str(center_coords_vals[island_number]) + '\n#' + str(island_number))
             else:
                 window[str(coord)].update(background_color='white')
             window['Generation'].update(value=generation)
@@ -291,10 +295,6 @@ class Population():
                     p2_random.individual[p1_island_range[0]:list_size])
                 avoid_range = range(p1_island_range[0], list_size)
 
-            # DEBUGGING
-            # print("P1: ", p1_random.individual)
-            # print("P2: ", p2_random.individual)
-
             # Maintain p1_toSet but as a list, so we can use it for easy comparison
             p1_toList = list(p1_toSet)
             # Subtracting the p1 set from the p2 set and making sure we don't lose any coordinates
@@ -324,7 +324,6 @@ class Population():
     # Randomly swaps a child with an ocean
     def mutate(self, children):
         for child in children:
-
             rand_chance = random.random()
 
             solved_child = None
@@ -345,6 +344,8 @@ class Population():
 
             if solved_child:
                 children[0] = solved_child
+
+        child.update_most_conflicted_island()
 
         return children
 
@@ -369,11 +370,9 @@ class Individual():
         self.islands_lists = []
 
         self.ocean = []
-        self.islands_dict = dict()
         self.ocean_start_index = cum_sum[-1]
-        self.all_isl_conflicts = dict()
 
-        self.most_conflicted_island = None
+        self.most_conflicted_island = []
 
         # ind keeps track of the index of the cum_sum_butlast
         isl = 0
@@ -395,7 +394,6 @@ class Individual():
             for coord in center_coords:
                 random_valid_island = random.choice(all_combinations[coord])
                 self.individual = self.individual + random_valid_island
-                self.islands_dict[coord] = random_valid_island
             self.ocean = []
             for coord in all_coords:
                 if coord not in self.individual:
@@ -403,12 +401,6 @@ class Individual():
                     self.individual.append(coord)
             if len(self.findConnectedOcean()) == max_waters:
                 satisfied = True
-
-        for coord in center_coords:
-            all_combs_for_coord = all_combinations[coord]
-
-        for main_coord in center_coords:
-            self.all_isl_conflicts[main_coord] = self.island_conflicts(main_coord)
 
         self.empty_list = [[0 for x in range(grid_size)] for y in range(grid_size)]
 
@@ -423,9 +415,8 @@ class Individual():
         if self.isSolved():
             pass
         else:
-            conflicts = [(coord, self.island_conflicts(coord)) for coord in center_coords]
+            conflicts = [(coord, self.island_conflicts(coord)) for coord in center_coords if center_coords[coord] != 1]
             most_conflicted_island = random.choices(population=[x[0] for x in conflicts], weights=[y[1] for y in conflicts], k=1)[0]
-            self.most_conflicted_island = most_conflicted_island
             if self.island_conflicts(most_conflicted_island) != 0:
                 self.try_reducing(most_conflicted_island)
             else:
@@ -530,6 +521,19 @@ class Individual():
         coord = random.choice(center_coords_keys)
         self.try_reducing(coord)
 
+    def getIslandSegment(self, coord):
+        coord_index = self.individual.index(coord)
+        size = center_coords[coord]
+        island_range = [coord_index, coord_index + size]
+        return self.individual[coord_index:coord_index + size]
+
+    def update_most_conflicted_island(self):
+        max_conflict = max([(coord, self.island_conflicts(coord)) for coord in center_coords if center_coords[coord] != 1],key = lambda x: x[1])
+        if max_conflict[1] != 0:
+            self.most_conflicted_island = self.getIslandSegment(max_conflict[0])
+        else:
+            self.most_conflicted_island = []
+
     def try_reducing(self, coord, small_swap=False):
         best_ind_so_far = self.individual.copy()
         fitness_snapshot = self.calculate_fitness()
@@ -568,7 +572,6 @@ class Individual():
                         self.individual[i] = coords_cur_but_work.pop()
 
                 if self.isSolved():
-                    self.solution = self.individual
                     best_ind_so_far = self.individual.copy()
                     break
                 else:
@@ -579,7 +582,7 @@ class Individual():
                         conflicts_snapshot = self.island_conflicts(coord)
         self.individual = best_ind_so_far
 
-    def calculate_fitness(self, island_focus=-1):
+    def calculate_fitness(self):
         total_fitness = 0.0
 
         # isIsolated() will return a value indicating how many good (or isolated) islands there are.
@@ -597,15 +600,13 @@ class Individual():
             return oceans_fitness - self.numOceanSquares()
 
         total_fitness += isolation_fitness
+
         if isolation_fitness == len(center_coords):
             pass
         else:
             return total_fitness
 
-        if island_focus != -1:
-            total_fitness += self.connectedFitness()
-        else:
-            total_fitness += self.connectedFitness()
+        total_fitness += self.connectedFitness()
 
         return total_fitness
 
