@@ -8,7 +8,8 @@ def isAdj(coord1, coord2):
     x1, y1 = coord1
     x2, y2 = coord2
     # return (abs(x1-x2) <= 1 and abs(y1-y2) <= 1)
-    return (abs(x2-x1) + abs(y2-y1) == 1)
+    return (abs(x2 - x1) + abs(y2 - y1) == 1)
+
 
 # checks a list to see if any is adj
 
@@ -19,15 +20,17 @@ def isAdjinList(coordlist, coord):
             return True
     return False
 
+
 # returns the coordinate from coordlist1 that is adj to coordlist2 otherwise returns 0
 
 
 def coordAdjbetweenTwoLists(coordlist1, coordlist2):
     for coord1 in coordlist1:
         for coord2 in coordlist2:
-            if(isAdj(coord1, coord2)):
+            if (isAdj(coord1, coord2)):
                 return coord1
     return 0
+
 
 # Checks to see if coordinate 1 is in range of coordinate 2, based on center
 # value length
@@ -36,8 +39,8 @@ def coordAdjbetweenTwoLists(coordlist1, coordlist2):
 def inRange(centerValue, coord1, coord2):
     x1, y1 = coord1
     x2, y2 = coord2
-    distance = abs(x1-x2) + abs(y1-y2)
-    if (distance <= centerValue-1):
+    distance = abs(x1 - x2) + abs(y1 - y2)
+    if (distance <= centerValue - 1):
         return True
     return False
 
@@ -49,7 +52,7 @@ def islandWorks(island, value):
     searching = True
 
     coordsAdjinclCenter.append(island_copy.pop(0))
-    while(searching):
+    while (searching):
         adjCoord = coordAdjbetweenTwoLists(island_copy, coordsAdjinclCenter)
         if (adjCoord != 0):
             coordsAdjinclCenter.append(
@@ -61,8 +64,8 @@ def islandWorks(island, value):
 
     return True if len(connectedIsland) == value else False
 
-def findAllConnected(adjacents, starting_island, island_size, islands_in_range, maneuver=False, avoid=None):
 
+def findAllConnected(adjacents, starting_island, island_size, islands_in_range, maneuver=False, avoid=None):
     if island_size == 1:
         return [[starting_island]]
     all_islands = []
@@ -88,7 +91,6 @@ def findAllConnected(adjacents, starting_island, island_size, islands_in_range, 
 
                     filtered_adjacents = [coord for coord in adjacents[cur_island] if coord in islands_in_range]
                     for child in filtered_adjacents:
-
                         fringe.append((child, cur_visited.copy(), cur_ttl))
 
     for temp_island in islands_in_range:
@@ -112,7 +114,6 @@ def findAllConnected(adjacents, starting_island, island_size, islands_in_range, 
 
                         filtered_adjacents = [coord for coord in adjacents[cur_island] if coord in islands_in_range]
                         for child in filtered_adjacents:
-
                             fringe.append((child, cur_visited.copy(), cur_ttl))
 
     # BFS from each island in range to the main island coordinate
@@ -122,7 +123,19 @@ def findAllConnected(adjacents, starting_island, island_size, islands_in_range, 
         if island not in no_duplicates:
             no_duplicates.append(island)
 
-    return list(moveMainToFront(starting_island,list(i)) for i in no_duplicates)
+    return list(moveMainToFront(starting_island, list(i)) for i in no_duplicates)
+
+
+def findAllRecursively(adjacents, starting_island, island_size, visited, final_list, coords_in_range):
+    visited.append(starting_island)
+    if island_size == 1:
+        final_list.append(visited)
+    else:
+        available_adjacents = [y for x in [adjacents[coord] for coord in visited] for y in x if
+                               y not in visited and y in coords_in_range]
+        for adj in available_adjacents:
+            findAllRecursively(adjacents, adj, island_size - 1, visited.copy(), final_list, coords_in_range)
+
 
 def moveMainToFront(starting, islands):
     if islands[0] == starting:
@@ -134,6 +147,7 @@ def moveMainToFront(starting, islands):
                 islands[0] = starting
                 islands[i] = temp
     return islands
+
 
 def generateAdjacencies(coordinates, grid_size):
     adjacencies = dict()
@@ -147,6 +161,7 @@ def generateAdjacencies(coordinates, grid_size):
         adjacencies[coord] = adjacents
     return adjacencies
 
+
 def avoidCoordinates(coordinates, adjacencies):
     definitely_avoid = dict()
     for coord in coordinates:
@@ -155,6 +170,7 @@ def avoidCoordinates(coordinates, adjacencies):
         avoid_all = avoid_all + bad_adjacents
         definitely_avoid[coord] = avoid_all
     return definitely_avoid
+
 
 def combine(terms, accum, combinations, max_isl_size):
     # print('Working..')
@@ -171,12 +187,6 @@ def combine(terms, accum, combinations, max_isl_size):
         else:
             combine(terms[1:], item, combinations, max_isl_size)
 
+
 def avoidList(my_coord, everyone_else):
     avoid = []
-
-
-if __name__ == '__main__':
-    combinations = []
-    combine([[1,2,3],[4,5,2]],[], combinations)
-    print(combinations)
-
